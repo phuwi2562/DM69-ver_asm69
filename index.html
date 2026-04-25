@@ -366,6 +366,45 @@ body {
   margin-bottom: .75rem;
 }
 
+/* การ์ดผู้ป่วยที่ซ้ำ (admin เห็นเท่านั้น) */
+.patient-card-duplicate {
+  border-left: 4px solid #dc3545 !important;
+  background: #fff5f5;
+}
+.patient-card-duplicate:hover { background: #ffe5e5; }
+
+/* กลุ่มผู้ป่วยซ้ำในหน้า duplicates */
+.dup-group {
+  background: #fff;
+  border: 2px solid #dc3545;
+  border-radius: 12px;
+  padding: 1rem;
+  margin-bottom: 1rem;
+  box-shadow: 0 2px 8px rgba(220,53,69,.12);
+}
+.dup-group-header {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: .65rem; padding-bottom: .55rem;
+  border-bottom: 1px dashed #dc3545;
+}
+.dup-group-key {
+  font-size: .78rem; color: #6c757d; font-family: monospace;
+  background: #f8f9fa; padding: 2px 8px; border-radius: 4px;
+}
+.dup-member {
+  background: #f8f9fa;
+  border-left: 4px solid #adb5bd;
+  border-radius: 6px;
+  padding: .65rem .85rem;
+  margin: .45rem 0;
+  display: flex; flex-wrap: wrap; gap: .5rem;
+  align-items: center; justify-content: space-between;
+}
+.dup-member.is-newest { border-left-color: #fd7e14; background: #fff8f0; }
+.dup-member.is-pending { border-left-color: #ffc107; }
+.dup-member-info { flex: 1; min-width: 240px; }
+.dup-member-info .small { color: #6c757d; }
+
 /* Patient Booklet - printable */
 #bookletPage .booklet-sheet {
   background: #fff; color: #212529;
@@ -483,6 +522,7 @@ body {
           <li class="nav-item" id="menuPatients"><a class="nav-link" href="#" onclick="showPage('patients'); return false;"><i class="bi bi-people-fill"></i> ผู้ป่วย</a></li>
           <li class="nav-item" id="menuPatientForm"><a class="nav-link" href="#" onclick="openNewPatientForm(); return false;"><i class="bi bi-person-plus-fill"></i> เพิ่มผู้ป่วย</a></li>
           <li class="nav-item" id="menuPendingPatients" style="display:none;"><a class="nav-link" href="#" onclick="showPage('pendingPatients'); return false;"><i class="bi bi-hourglass-split"></i> ผู้ป่วยรออนุมัติ <span id="pendingPatientsBadge" class="badge bg-warning text-dark" style="display:none;">0</span></a></li>
+          <li class="nav-item" id="menuDuplicates" style="display:none;"><a class="nav-link" href="#" onclick="showPage('duplicates'); return false;"><i class="bi bi-files"></i> ตรวจสอบผู้ป่วยซ้ำ <span id="duplicatesBadge" class="badge bg-danger" style="display:none;">0</span></a></li>
           <li class="nav-item" id="menuUsers" style="display:none;"><a class="nav-link" href="#" onclick="showPage('users'); return false;"><i class="bi bi-people"></i> จัดการผู้ใช้ <span id="pendingBadge" class="badge bg-danger" style="display:none;">0</span></a></li>
           <li class="nav-item" id="menuLog"><a class="nav-link" href="#" onclick="showPage('auditLog'); return false;"><i class="bi bi-shield-check"></i> Log</a></li>
         </ul>
@@ -877,6 +917,22 @@ body {
         — กด <strong>อนุมัติ</strong> เพื่อให้เข้าสู่ระบบ หรือ <strong>ปฏิเสธ</strong> พร้อมระบุเหตุผล (ผู้ป่วยจะถูกซ่อน)
       </div>
       <div id="pendingPatientsList"></div>
+    </div>
+
+    <!-- ===================== DUPLICATE PATIENTS (admin only) ===================== -->
+    <div id="duplicatesPage" class="subpage" style="display:none;">
+      <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+        <h4 class="mb-0"><i class="bi bi-files text-danger"></i> ตรวจสอบผู้ป่วยที่อาจซ้ำกัน
+          <span id="dupSummary" class="badge bg-danger ms-2"></span></h4>
+        <button class="btn btn-outline-secondary btn-sm" onclick="loadDuplicates()"><i class="bi bi-arrow-clockwise"></i> สแกนใหม่</button>
+      </div>
+      <div class="alert alert-info small mb-3">
+        <i class="bi bi-info-circle"></i> ระบบเปรียบเทียบผู้ป่วยจาก:
+        <strong>ชื่อ + นามสกุล + อายุ (จากวันเกิด) + บ้านเลขที่ + หมู่</strong>
+        — แสดงเฉพาะกลุ่มที่พบ ≥ 2 รายการ <em>(เมนูนี้แสดงเฉพาะ admin)</em><br>
+        <strong>หมายเหตุ:</strong> การลบเป็นแบบ soft delete — สามารถกู้คืนได้จาก Spreadsheet (ตั้ง Active กลับเป็น TRUE)
+      </div>
+      <div id="duplicatesList"></div>
     </div>
 
     <!-- ===================== PATIENT BOOKLET (สมุดประจำตัวผู้ป่วย) ===================== -->
@@ -1640,7 +1696,7 @@ body {
    ============================================================ */
 
 // !!! เมื่อ deploy เป็น Web App แล้ว ให้เปลี่ยน APP_URL ด้านล่างเป็น URL จริง !!!
-const APP_URL = 'https://script.google.com/macros/s/AKfycbwFF42bAeriaW4bxAiQGUYb-OG2glUuagVTeqF-iolNhANpR10N3p0vZyhNnlmQcbMW5A/exec';
+const APP_URL = 'https://script.google.com/macros/s/AKfycbzWmycX1nL4J4_oOKRVMoWuhiJvOQA34Iic6qt0Za1QppQD0kdzcnsH5oqIVXKMWL_LZg/exec';
 
 let currentUser = null;
 let currentPatient = null;
@@ -1771,6 +1827,12 @@ function showPage(page, navItem) {
     }
     loadPendingPatients();
   }
+  if (page === 'duplicates') {
+    if (currentUser && currentUser.role !== 'admin') {
+      showError('ต้องการสิทธิ์ admin เท่านั้น'); showPage('dashboard'); return;
+    }
+    loadDuplicates();
+  }
   if (page === 'patients') {
     if (currentUser && currentUser.role === 'viewer') { showError('บทบาทผู้บริหาร/กรรมการ พชต. ดูได้เฉพาะ Dashboard'); showPage('dashboard'); return; }
     loadPatients();
@@ -1859,6 +1921,11 @@ function applyRoleUI(role) {
   const showApproval = (isAdmin || role === 'staff');
   if (mpp) mpp.style.display = showApproval ? '' : 'none';
   if (showApproval) loadPendingPatientsBadge();
+
+  // เมนู "ตรวจสอบผู้ป่วยซ้ำ" — admin เท่านั้น
+  const mdup = document.getElementById('menuDuplicates');
+  if (mdup) mdup.style.display = isAdmin ? '' : 'none';
+  if (isAdmin) loadDuplicateIdsForBadge();
 
   // Mobile bottom nav
   const mmp = document.getElementById('mobNavPatients');
@@ -2430,11 +2497,18 @@ function renderPatientCard(p) {
     : '';
   const pendingClass = (p.ApprovalStatus === 'pending') ? ' patient-card-pending' : '';
 
-  return `<div class="card patient-card mb-2${pendingClass}" onclick="viewPatient('${p.PatientID}')">
+  // ป้าย "ซ้ำ" — admin เท่านั้นที่เห็น
+  const isDup = (currentUser && currentUser.role === 'admin' && _duplicateIdSet && _duplicateIdSet.has(p.PatientID));
+  const dupBadge = isDup
+    ? '<span class="badge bg-danger ms-1" title="ผู้ป่วยซ้ำ — ตรวจสอบในเมนู ผู้ป่วยซ้ำ"><i class="bi bi-exclamation-triangle-fill"></i> ซ้ำ</span>'
+    : '';
+  const dupClass = isDup ? ' patient-card-duplicate' : '';
+
+  return `<div class="card patient-card mb-2${pendingClass}${dupClass}" onclick="viewPatient('${p.PatientID}')">
     <div class="card-body d-flex align-items-center">
       <div class="avatar-circle me-3">${initials}</div>
       <div class="flex-grow-1">
-        <div class="fw-bold">${fullName}${pendingBadge}</div>
+        <div class="fw-bold">${fullName}${pendingBadge}${dupBadge}</div>
         <small class="text-muted">
           <i class="bi bi-house-door"></i> ${p.VillageName || ''}${p.HN ? ' · HN: ' + p.HN : ''}
           · ตรวจล่าสุด: ${lastVisit}
@@ -2543,6 +2617,8 @@ async function savePatient() {
     const r = await apiCall({ action: 'savePatient', token: currentUser.token, data: JSON.stringify(data) });
     Swal.close();
     if (r.success) {
+      // refresh duplicate badge ในกรณีที่บันทึกแล้วอาจสร้างซ้ำ (admin จะรู้)
+      if (currentUser && currentUser.role === 'admin') loadDuplicateIdsForBadge();
       // ถ้าเป็น pending — แสดง modal พิเศษให้ อสม. รู้ว่ารอ admin
       if (r.data && r.data.ApprovalStatus === 'pending') {
         await Swal.fire({
@@ -2602,15 +2678,19 @@ function renderPatientDetail(p) {
   const editBtn = canEdit
     ? `<button class="btn btn-sm btn-outline-success" onclick="editPatient()"><i class="bi bi-pencil"></i> แก้ไข</button>`
     : '';
+  // ปุ่มลบสำหรับ admin เท่านั้น
+  const deleteBtn = (currentUser && currentUser.role === 'admin')
+    ? `<button class="btn btn-sm btn-outline-danger ms-1" onclick="doDeletePatient('${p.PatientID}', '${escapeJs((p.Prefix||'') + p.FirstName + ' ' + p.LastName)}')"><i class="bi bi-trash"></i> ลบ</button>`
+    : '';
   document.getElementById('patientDetail').innerHTML = `
-    <div class="d-flex align-items-center">
-      <div class="avatar-circle me-3" style="width:60px;height:60px;font-size:1.3rem;">${initials}</div>
+    <div class="d-flex align-items-center flex-wrap gap-2">
+      <div class="avatar-circle me-2" style="width:60px;height:60px;font-size:1.3rem;">${initials}</div>
       <div class="flex-grow-1">
         <h5 class="mb-1">${p.Prefix || ''}${p.FirstName} ${p.LastName}</h5>
         <div class="small text-muted"><i class="bi bi-card-heading"></i> HN: ${p.HN || '-'} · CID: ${p.CID || '-'}</div>
         <div class="small"><i class="bi bi-house-door"></i> ${p.VillageName || ''} ${p.Address ? '· ' + p.Address : ''}</div>
       </div>
-      ${editBtn}
+      <div class="d-flex">${editBtn}${deleteBtn}</div>
     </div>
     <div class="row mt-3">
       <div class="col-6 col-md-3"><span class="chip chip-blue">เพศ: ${p.Gender || '-'}</span></div>
@@ -3647,6 +3727,158 @@ function escapeHtml(s) {
 function escapeJs(s) {
   if (s === null || s === undefined) return '';
   return String(s).replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+}
+
+/* ===================================================================
+   DUPLICATE PATIENT DETECTION — admin only
+   =================================================================== */
+let _duplicateIdSet = new Set(); // PatientID ของผู้ป่วยที่อยู่ในกลุ่มซ้ำ
+let _duplicateGroups = [];
+
+async function loadDuplicateIdsForBadge() {
+  // เรียกเงียบ ๆ เพื่อ mark การ์ดและขึ้นจำนวนใน badge
+  if (!currentUser || currentUser.role !== 'admin') return;
+  try {
+    const r = await jsonp({ action: 'findDuplicatePatients', token: currentUser.token });
+    if (!r.success) return;
+    _duplicateIdSet = new Set(r.data.duplicateIds || []);
+    _duplicateGroups = r.data.groups || [];
+    const n = r.data.totalGroups || 0;
+    const badge = document.getElementById('duplicatesBadge');
+    if (badge) {
+      badge.textContent = n;
+      badge.style.display = n > 0 ? 'inline-block' : 'none';
+    }
+    // ถ้าหน้าผู้ป่วยกำลังเปิดอยู่ — re-render ให้เห็นป้าย "ซ้ำ"
+    if (document.getElementById('patientsPage').style.display !== 'none') {
+      try { renderNextPatientBatch && applyPatientFilterSort && applyPatientFilterSort(); } catch (e) {}
+    }
+  } catch (e) { /* silent */ }
+}
+
+async function loadDuplicates() {
+  showLoading('กำลังสแกนผู้ป่วยซ้ำ...');
+  try {
+    const r = await jsonp({ action: 'findDuplicatePatients', token: currentUser.token });
+    Swal.close();
+    if (!r.success) { showError(r.message); return; }
+    _duplicateIdSet = new Set(r.data.duplicateIds || []);
+    _duplicateGroups = r.data.groups || [];
+    renderDuplicates(r.data);
+    // อัปเดต badge ให้ตรงกัน
+    const badge = document.getElementById('duplicatesBadge');
+    if (badge) {
+      badge.textContent = r.data.totalGroups;
+      badge.style.display = r.data.totalGroups > 0 ? 'inline-block' : 'none';
+    }
+  } catch (e) { Swal.close(); showError(e.toString()); }
+}
+
+function renderDuplicates(data) {
+  const wrap = document.getElementById('duplicatesList');
+  const sum = document.getElementById('dupSummary');
+  if (sum) sum.textContent = (data.totalGroups || 0) + ' กลุ่ม · ' + (data.totalDuplicates || 0) + ' รายการ';
+
+  if (!data.groups || data.groups.length === 0) {
+    wrap.innerHTML = '<div class="alert alert-success"><i class="bi bi-check2-circle"></i> ไม่พบผู้ป่วยซ้ำในระบบ</div>';
+    return;
+  }
+
+  wrap.innerHTML = data.groups.map((g, gi) => {
+    // ตัวที่ใหม่กว่า (ตัวสุดท้ายในกลุ่มหลัง sort asc) มักเป็นตัวที่ซ้ำ → highlight
+    const newestIdx = g.members.length - 1;
+    const memberHtml = g.members.map((m, i) => {
+      const isPending = m.approvalStatus === 'pending';
+      const cls = (i === newestIdx ? ' is-newest' : '') + (isPending ? ' is-pending' : '');
+      const badges = [];
+      if (i === 0) badges.push('<span class="badge bg-success">เก่าสุด</span>');
+      if (i === newestIdx && newestIdx !== 0) badges.push('<span class="badge bg-warning text-dark">ใหม่สุด</span>');
+      if (isPending) badges.push('<span class="badge bg-warning text-dark"><i class="bi bi-hourglass-split"></i> รออนุมัติ</span>');
+      return `
+        <div class="dup-member${cls}">
+          <div class="dup-member-info">
+            <div>
+              <strong>${escapeHtml((m.prefix || '') + m.firstName + ' ' + m.lastName)}</strong>
+              ${badges.join(' ')}
+            </div>
+            <div class="small">
+              HN: ${escapeHtml(m.hn || '-')} · CID: ${escapeHtml(m.cid || '-')}<br>
+              อายุ ${m.age !== null ? m.age + ' ปี' : '-'} · ${escapeHtml(m.gender || '-')} ·
+              วันเกิด ${formatDateBE(m.birthDate)}<br>
+              <i class="bi bi-house-door"></i> ${escapeHtml(m.villageName || ('หมู่ ' + m.village))} ·
+              ${escapeHtml(m.address || '-')}<br>
+              <i class="bi bi-clock-history"></i> เพิ่มโดย <strong>${escapeHtml(m.createdBy || '-')}</strong>
+              เมื่อ ${escapeHtml(m.createdAt || '-')}
+            </div>
+          </div>
+          <div class="btn-group btn-group-sm">
+            <button class="btn btn-outline-primary" onclick="viewPatient('${escapeJs(m.patientId)}')"><i class="bi bi-eye"></i> ดู</button>
+            <button class="btn btn-danger" onclick="doDeletePatient('${escapeJs(m.patientId)}', '${escapeJs((m.prefix||'') + m.firstName + ' ' + m.lastName)}')"><i class="bi bi-trash"></i> ลบ</button>
+          </div>
+        </div>`;
+    }).join('');
+
+    return `
+      <div class="dup-group">
+        <div class="dup-group-header">
+          <div>
+            <strong class="text-danger"><i class="bi bi-files"></i> กลุ่มที่ ${gi + 1}</strong>
+            <span class="badge bg-danger ms-1">${g.members.length} รายการ</span>
+          </div>
+          <span class="dup-group-key" title="ชื่อ|สกุล|อายุ|ที่อยู่|หมู่">${escapeHtml(g.key)}</span>
+        </div>
+        ${memberHtml}
+      </div>`;
+  }).join('');
+}
+
+async function doDeletePatient(pid, name) {
+  const ok = await Swal.fire({
+    icon: 'warning',
+    title: 'ลบผู้ป่วยรายนี้?',
+    html: 'จะลบ <strong>' + escapeHtml(name) + '</strong> ออกจากระบบ<br>'
+      + '<small class="text-muted">เป็นการลบแบบ soft delete — ข้อมูลยังอยู่ใน Spreadsheet กู้คืนได้โดยตั้ง Active กลับเป็น TRUE</small><br><br>'
+      + 'กรุณาระบุเหตุผล:',
+    input: 'select',
+    inputOptions: {
+      'duplicate': 'ข้อมูลซ้ำกับผู้ป่วยรายอื่น',
+      'wrong_data': 'ข้อมูลผิดพลาด',
+      'death': 'ผู้ป่วยเสียชีวิต',
+      'moved_out': 'ย้ายออกจากพื้นที่',
+      'other': 'อื่นๆ'
+    },
+    showCancelButton: true,
+    confirmButtonText: 'ลบ',
+    cancelButtonText: 'ยกเลิก',
+    confirmButtonColor: '#dc3545',
+    inputValidator: (v) => !v ? 'กรุณาเลือกเหตุผล' : undefined
+  });
+  if (!ok.isConfirmed) return;
+
+  showLoading('กำลังลบ...');
+  try {
+    const r = await jsonp({
+      action: 'deletePatient', token: currentUser.token,
+      patientId: pid, reason: ok.value
+    });
+    Swal.close();
+    if (!r.success) { showError(r.message); return; }
+    showSuccess(r.message);
+    // ตรวจว่าตอนนี้อยู่หน้าไหน เพื่อ refresh ให้ถูก
+    const onDup = document.getElementById('duplicatesPage').style.display !== 'none';
+    const onDetail = document.getElementById('detailPage').style.display !== 'none';
+    if (onDup) {
+      await loadDuplicates();
+    } else if (onDetail) {
+      // ลบจากหน้ารายละเอียดผู้ป่วย → กลับไปยังรายชื่อ
+      showPage('patients');
+      loadPatients();
+    } else {
+      loadPatients();
+    }
+    // อัปเดต badge เสมอ
+    loadDuplicateIdsForBadge();
+  } catch (e) { Swal.close(); showError(e.toString()); }
 }
 
 /* ===================================================================
