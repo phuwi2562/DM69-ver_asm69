@@ -1092,6 +1092,7 @@ body {
         <li class="nav-item"><button class="nav-link" onclick="switchTab('lifestyle')"><i class="bi bi-stars"></i> 6 เสาหลักเวชศาสตร์วิถีชีวิต</button></li>
         <li class="nav-item"><button class="nav-link" onclick="switchTab('stage')"><i class="bi bi-compass"></i> Stages of Change / MI</button></li>
         <li class="nav-item"><button class="nav-link" onclick="switchTab('annual')"><i class="bi bi-clipboard2-check"></i> ตรวจประจำปี</button></li>
+        <li class="nav-item"><button class="nav-link" onclick="switchTab('trend')"><i class="bi bi-graph-up-arrow"></i> แนวโน้ม</button></li>
         <li class="nav-item"><button class="nav-link" onclick="switchTab('history')"><i class="bi bi-clock-history"></i> ประวัติ</button></li>
       </ul>
 
@@ -1440,6 +1441,93 @@ body {
             </div>
             <div class="row g-2" id="annualExamGrid">
               <!-- ใส่ข้อมูลจาก renderAnnualExamUI() -->
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB: TREND CHARTS -->
+      <div id="tabTrend" class="tab-content-panel" style="display:none;">
+        <div class="d-flex justify-content-between align-items-center mb-2 flex-wrap gap-2">
+          <h6 class="mb-0 text-success"><i class="bi bi-graph-up-arrow"></i> แนวโน้มผลตรวจ</h6>
+          <div class="btn-group btn-group-sm" role="group">
+            <input type="radio" class="btn-check" name="trendRange" id="trendRange12" value="12" checked onchange="renderPatientTrendCharts()">
+            <label class="btn btn-outline-success" for="trendRange12">12 เดือน</label>
+            <input type="radio" class="btn-check" name="trendRange" id="trendRange24" value="24" onchange="renderPatientTrendCharts()">
+            <label class="btn btn-outline-success" for="trendRange24">24 เดือน</label>
+            <input type="radio" class="btn-check" name="trendRange" id="trendRangeAll" value="0" onchange="renderPatientTrendCharts()">
+            <label class="btn btn-outline-success" for="trendRangeAll">ทั้งหมด</label>
+          </div>
+        </div>
+        <div class="alert alert-info small mb-3 py-2">
+          <i class="bi bi-info-circle"></i> เส้นประคือค่าเป้าหมาย — จุดสีเขียวคือ "ในเกณฑ์", สีเหลือง "เกินเกณฑ์เล็กน้อย", สีแดง "เกินเกณฑ์มาก"
+        </div>
+
+        <div id="trendNoData" class="text-center text-muted py-4" style="display:none;">
+          <i class="bi bi-graph-up display-4"></i>
+          <div class="mt-2">ยังไม่มีข้อมูลผลตรวจในช่วงที่เลือก</div>
+        </div>
+
+        <div id="trendCharts" class="row g-3">
+          <div class="col-12 col-lg-6">
+            <div class="card border-0 shadow-sm h-100">
+              <div class="card-body">
+                <div class="d-flex justify-content-between align-items-baseline">
+                  <strong class="text-success"><i class="bi bi-droplet-fill"></i> HbA1c</strong>
+                  <small class="text-muted">เป้าหมาย &lt; 7 %</small>
+                </div>
+                <div id="trendHbA1cSummary" class="small mt-1"></div>
+                <canvas id="trendHbA1cChart" height="180"></canvas>
+              </div>
+            </div>
+          </div>
+
+          <div class="col-12 col-lg-6">
+            <div class="card border-0 shadow-sm h-100">
+              <div class="card-body">
+                <div class="d-flex justify-content-between align-items-baseline">
+                  <strong class="text-primary"><i class="bi bi-droplet-half"></i> FBS / DTX</strong>
+                  <small class="text-muted">เป้าหมาย 70 - 130 mg/dL</small>
+                </div>
+                <div id="trendFBSSummary" class="small mt-1"></div>
+                <canvas id="trendFBSChart" height="180"></canvas>
+              </div>
+            </div>
+          </div>
+
+          <div class="col-12 col-lg-6">
+            <div class="card border-0 shadow-sm h-100">
+              <div class="card-body">
+                <div class="d-flex justify-content-between align-items-baseline">
+                  <strong class="text-danger"><i class="bi bi-heart-pulse-fill"></i> ความดันโลหิต (BP)</strong>
+                  <small class="text-muted">เป้าหมาย &lt; 140/90 mmHg</small>
+                </div>
+                <div id="trendBPSummary" class="small mt-1"></div>
+                <canvas id="trendBPChart" height="180"></canvas>
+              </div>
+            </div>
+          </div>
+
+          <div class="col-12 col-lg-6">
+            <div class="card border-0 shadow-sm h-100">
+              <div class="card-body">
+                <div class="d-flex justify-content-between align-items-baseline">
+                  <strong style="color:#fd7e14;"><i class="bi bi-speedometer2"></i> น้ำหนัก / BMI</strong>
+                  <small class="text-muted">BMI 18.5 - 22.9</small>
+                </div>
+                <div id="trendWeightSummary" class="small mt-1"></div>
+                <canvas id="trendWeightChart" height="180"></canvas>
+              </div>
+            </div>
+          </div>
+
+          <div class="col-12">
+            <div class="card border-0 shadow-sm">
+              <div class="card-body">
+                <strong class="text-info"><i class="bi bi-droplet"></i> ไขมัน (LDL / HDL / Triglyceride)</strong>
+                <small class="text-muted ms-2">LDL &lt; 100 · HDL ช &gt; 40 / ญ &gt; 50 · TG &lt; 150 mg/dL</small>
+                <canvas id="trendLipidChart" height="120"></canvas>
+              </div>
             </div>
           </div>
         </div>
@@ -1941,6 +2029,7 @@ function switchTab(tab) {
   event.currentTarget.classList.add('active');
   if (tab === 'history') loadHistory();
   if (tab === 'annual') renderAnnualExamUI();
+  if (tab === 'trend') loadPatientTrendData();
 }
 
 /* ---------- Authentication ---------- */
@@ -2734,6 +2823,8 @@ async function viewPatient(id) {
     Swal.close();
     if (!r.success) { showError(r.message); return; }
     currentPatient = r.data;
+    // ล้าง trend data ของผู้ป่วยคนก่อน
+    _trendHistory = null;
     renderPatientDetail(currentPatient);
     // Set today defaults
     const today = new Date().toISOString().split('T')[0];
@@ -3818,6 +3909,409 @@ function escapeHtml(s) {
 function escapeJs(s) {
   if (s === null || s === undefined) return '';
   return String(s).replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+}
+
+/* ===================================================================
+   PATIENT TREND CHARTS — กราฟแนวโน้มต่อผู้ป่วย (HbA1c, FBS, BP, weight, lipid)
+   =================================================================== */
+let _trendHistory = null;            // cache visit/lab history ของผู้ป่วยปัจจุบัน
+let _trendChartInstances = {};       // เก็บ Chart.js instances เพื่อ destroy ก่อน render ใหม่
+
+const _TREND_COLORS = {
+  good:   '#28a745',   // เขียว
+  mid:    '#ffc107',   // เหลือง
+  bad:    '#dc3545',   // แดง
+  line:   '#6c757d',
+  bgLine: 'rgba(108,117,125,.15)',
+};
+
+/**
+ * โหลด visit/lab history ของผู้ป่วยปัจจุบัน (ถ้ายังไม่มี cache) แล้ว render charts
+ */
+async function loadPatientTrendData() {
+  if (!currentPatient) return;
+  // ถ้า cache มีอยู่แล้ว — render ทันที
+  if (_trendHistory) { renderPatientTrendCharts(); return; }
+  showLoading('กำลังโหลดข้อมูลแนวโน้ม...');
+  try {
+    const r = await jsonp({ action: 'getVisitHistory', token: currentUser.token, patientId: currentPatient.PatientID });
+    Swal.close();
+    if (!r.success) { showError(r.message); return; }
+    _trendHistory = r.data || { visits: [], labs: [] };
+    renderPatientTrendCharts();
+  } catch (e) { Swal.close(); showError(e.toString()); }
+}
+
+/**
+ * คืน timestamp (ms) ของรายการ visit/lab — ใช้สำหรับ filter ช่วงเวลา
+ */
+function _trendTs(item, dateField) {
+  const v = item[dateField];
+  if (!v) return null;
+  // VisitDate อาจเป็น "yyyy-MM-dd HH:mm" หรือ "yyyy-MM-dd"
+  const d = new Date(v);
+  return isNaN(d.getTime()) ? null : d.getTime();
+}
+
+/**
+ * filter array ตามจำนวนเดือนย้อนหลัง (months=0 = ทั้งหมด)
+ */
+function _trendFilter(arr, dateField, months) {
+  if (!Array.isArray(arr) || arr.length === 0) return [];
+  const sorted = arr.slice().filter(x => _trendTs(x, dateField) !== null);
+  sorted.sort((a, b) => _trendTs(a, dateField) - _trendTs(b, dateField));
+  if (!months || months <= 0) return sorted;
+  const cutoff = new Date();
+  cutoff.setMonth(cutoff.getMonth() - months);
+  const cutoffMs = cutoff.getTime();
+  return sorted.filter(x => _trendTs(x, dateField) >= cutoffMs);
+}
+
+/**
+ * Format Date label สั้น: "15 เม.ย. 68"
+ */
+function _trendDateLabel(d) {
+  if (!d) return '';
+  const dt = d instanceof Date ? d : new Date(d);
+  if (isNaN(dt.getTime())) return '';
+  const months = ['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
+  return dt.getDate() + ' ' + months[dt.getMonth()] + ' ' + String((dt.getFullYear() + 543) % 100);
+}
+
+/**
+ * คืนสีจุดตามค่า — ใช้คั่นจุดในกราฟตามเกณฑ์
+ */
+function _trendPointColor(value, goodMax, midMax) {
+  if (value === null || value === undefined || isNaN(value)) return _TREND_COLORS.line;
+  if (value < goodMax) return _TREND_COLORS.good;
+  if (value < midMax) return _TREND_COLORS.mid;
+  return _TREND_COLORS.bad;
+}
+
+/**
+ * helper: คำนวณ trend (ดีขึ้น/แย่ลง) จากค่าแรก-สุดท้าย
+ */
+function _trendDelta(values) {
+  if (!values || values.length < 2) return null;
+  const first = values[0], last = values[values.length - 1];
+  if (first === null || last === null) return null;
+  return +(last - first).toFixed(1);
+}
+
+/**
+ * Helper: render หรือ update Chart.js instance ตาม id
+ */
+function _renderChart(canvasId, config) {
+  // destroy instance เก่า เพื่อไม่ให้ canvas overlap
+  if (_trendChartInstances[canvasId]) {
+    _trendChartInstances[canvasId].destroy();
+  }
+  const canvas = document.getElementById(canvasId);
+  if (!canvas) return;
+  _trendChartInstances[canvasId] = new Chart(canvas.getContext('2d'), config);
+}
+
+/**
+ * เส้น reference (target line) สร้างเป็น dataset ที่เป็นค่าคงที่
+ */
+function _trendReferenceLine(label, value, dataLength, color) {
+  return {
+    label: label,
+    data: new Array(dataLength).fill(value),
+    borderColor: color || _TREND_COLORS.line,
+    borderDash: [6, 4],
+    borderWidth: 1.5,
+    pointRadius: 0,
+    fill: false,
+    tension: 0,
+  };
+}
+
+/**
+ * ตัว main: render กราฟทั้ง 5 ตามช่วงเวลาที่เลือก
+ */
+function renderPatientTrendCharts() {
+  if (!_trendHistory) return;
+  const months = parseInt((document.querySelector('input[name="trendRange"]:checked') || {}).value || '12', 10);
+
+  const labs = _trendFilter(_trendHistory.labs || [], 'LabDate', months);
+  const visits = _trendFilter(_trendHistory.visits || [], 'VisitDate', months);
+
+  // ตรวจว่ามีข้อมูลพอจะวาดไหม
+  const noDataEl = document.getElementById('trendNoData');
+  const chartsEl = document.getElementById('trendCharts');
+  if (labs.length === 0 && visits.length === 0) {
+    if (noDataEl) noDataEl.style.display = 'block';
+    if (chartsEl) chartsEl.style.display = 'none';
+    return;
+  }
+  if (noDataEl) noDataEl.style.display = 'none';
+  if (chartsEl) chartsEl.style.display = '';
+
+  /* ----- HbA1c ----- */
+  const hbLabs = labs.filter(l => {
+    const v = parseFloat(l.HbA1c);
+    return !isNaN(v) && v > 0;
+  });
+  const hbLabels = hbLabs.map(l => _trendDateLabel(l.LabDate));
+  const hbValues = hbLabs.map(l => parseFloat(l.HbA1c));
+  const hbColors = hbValues.map(v => _trendPointColor(v, 7, 8));
+  _renderChart('trendHbA1cChart', {
+    type: 'line',
+    data: {
+      labels: hbLabels,
+      datasets: [
+        {
+          label: 'HbA1c (%)',
+          data: hbValues,
+          borderColor: '#1a8754',
+          backgroundColor: 'rgba(26,135,84,.08)',
+          pointBackgroundColor: hbColors,
+          pointBorderColor: hbColors,
+          pointRadius: 5,
+          pointHoverRadius: 7,
+          fill: true,
+          tension: 0.25,
+        },
+        _trendReferenceLine('เป้าหมาย < 7%', 7, hbLabels.length, _TREND_COLORS.good),
+        _trendReferenceLine('สูง > 8%', 8, hbLabels.length, _TREND_COLORS.bad),
+      ],
+    },
+    options: _trendChartOptions({ yMin: 4, yMax: 14, unit: '%' }),
+  });
+  _setTrendSummary('trendHbA1cSummary', hbValues, '%', 7, 8, true);
+
+  /* ----- FBS / DTX ----- */
+  // รวม FBS จาก labs + DTX จาก visits (FBS-fasting type)
+  const fbsPoints = [];
+  hbLabs.forEach(() => {});
+  labs.forEach(l => {
+    const v = parseFloat(l.FBS);
+    if (!isNaN(v) && v > 0) fbsPoints.push({ date: l.LabDate, value: v, src: 'Lab' });
+  });
+  visits.forEach(v => {
+    const dtx = parseFloat(v.DTX);
+    if (!isNaN(dtx) && dtx > 0) {
+      const t = String(v.DTX_Type || '').toLowerCase();
+      // เก็บเฉพาะ FBS-style (งดอาหาร) เพื่อให้เทียบกันได้
+      if (t.indexOf('fbs') >= 0 || t.indexOf('งดอาหาร') >= 0 || t === '') {
+        fbsPoints.push({ date: v.VisitDate, value: dtx, src: 'DTX' });
+      }
+    }
+  });
+  fbsPoints.sort((a, b) => new Date(a.date) - new Date(b.date));
+  const fbsLabels = fbsPoints.map(p => _trendDateLabel(p.date));
+  const fbsValues = fbsPoints.map(p => p.value);
+  const fbsColors = fbsValues.map(v => v < 130 && v >= 70 ? _TREND_COLORS.good : (v < 180 && v >= 70 ? _TREND_COLORS.mid : _TREND_COLORS.bad));
+  _renderChart('trendFBSChart', {
+    type: 'line',
+    data: {
+      labels: fbsLabels,
+      datasets: [
+        {
+          label: 'FBS / DTX (mg/dL)',
+          data: fbsValues,
+          borderColor: '#0d6efd',
+          backgroundColor: 'rgba(13,110,253,.08)',
+          pointBackgroundColor: fbsColors,
+          pointBorderColor: fbsColors,
+          pointRadius: 5,
+          pointHoverRadius: 7,
+          fill: true,
+          tension: 0.25,
+        },
+        _trendReferenceLine('เป้าหมาย 70', 70, fbsLabels.length, _TREND_COLORS.good),
+        _trendReferenceLine('เป้าหมาย 130', 130, fbsLabels.length, _TREND_COLORS.good),
+      ],
+    },
+    options: _trendChartOptions({ yMin: 50, yMax: 350, unit: 'mg/dL' }),
+  });
+  _setTrendSummary('trendFBSSummary', fbsValues, ' mg/dL', 130, 180, true);
+
+  /* ----- BP ----- */
+  const bpPoints = visits.filter(v => {
+    const sbp = parseFloat(v.SBP), dbp = parseFloat(v.DBP);
+    return !isNaN(sbp) && sbp > 0 && !isNaN(dbp) && dbp > 0;
+  });
+  const bpLabels = bpPoints.map(v => _trendDateLabel(v.VisitDate));
+  const sbpVals = bpPoints.map(v => parseFloat(v.SBP));
+  const dbpVals = bpPoints.map(v => parseFloat(v.DBP));
+  const sbpColors = sbpVals.map(v => _trendPointColor(v, 140, 160));
+  const dbpColors = dbpVals.map(v => _trendPointColor(v, 90, 100));
+  _renderChart('trendBPChart', {
+    type: 'line',
+    data: {
+      labels: bpLabels,
+      datasets: [
+        {
+          label: 'SBP', data: sbpVals,
+          borderColor: '#dc3545', backgroundColor: 'rgba(220,53,69,.08)',
+          pointBackgroundColor: sbpColors, pointBorderColor: sbpColors,
+          pointRadius: 5, fill: false, tension: 0.25,
+        },
+        {
+          label: 'DBP', data: dbpVals,
+          borderColor: '#fd7e14', backgroundColor: 'rgba(253,126,20,.08)',
+          pointBackgroundColor: dbpColors, pointBorderColor: dbpColors,
+          pointRadius: 5, fill: false, tension: 0.25,
+        },
+        _trendReferenceLine('SBP เป้า 140', 140, bpLabels.length, '#dc3545'),
+        _trendReferenceLine('DBP เป้า 90', 90, bpLabels.length, '#fd7e14'),
+      ],
+    },
+    options: _trendChartOptions({ yMin: 60, yMax: 200, unit: 'mmHg' }),
+  });
+  // BP summary: SBP/DBP latest
+  const bpSummary = document.getElementById('trendBPSummary');
+  if (bpSummary) {
+    if (sbpVals.length === 0) bpSummary.textContent = '— ไม่มีข้อมูล BP —';
+    else {
+      const lastSbp = sbpVals[sbpVals.length - 1], lastDbp = dbpVals[dbpVals.length - 1];
+      const ctrl = (lastSbp < 140 && lastDbp < 90);
+      const dSbp = _trendDelta(sbpVals), dDbp = _trendDelta(dbpVals);
+      const arrow = (d) => d === null ? '' : (d > 0 ? '↑+' + d : d < 0 ? '↓' + d : '→');
+      bpSummary.innerHTML = '<span class="' + (ctrl ? 'text-success' : 'text-danger') + '">'
+        + 'ล่าสุด ' + lastSbp + '/' + lastDbp
+        + ' <small>(' + arrow(dSbp) + ' / ' + arrow(dDbp) + ' จากครั้งแรก)</small>'
+        + (ctrl ? ' ✓ คุมได้' : ' ⚠ คุมไม่ได้')
+        + '</span>';
+    }
+  }
+
+  /* ----- น้ำหนัก / BMI ----- */
+  const wPoints = visits.filter(v => {
+    const w = parseFloat(v.Weight);
+    return !isNaN(w) && w > 0;
+  });
+  const wLabels = wPoints.map(v => _trendDateLabel(v.VisitDate));
+  const wVals = wPoints.map(v => parseFloat(v.Weight));
+  const bmiVals = wPoints.map(v => {
+    const b = parseFloat(v.BMI);
+    return isNaN(b) ? null : b;
+  });
+  _renderChart('trendWeightChart', {
+    type: 'line',
+    data: {
+      labels: wLabels,
+      datasets: [
+        {
+          label: 'น้ำหนัก (kg)', data: wVals, yAxisID: 'y',
+          borderColor: '#fd7e14', backgroundColor: 'rgba(253,126,20,.08)',
+          pointRadius: 5, fill: true, tension: 0.25,
+        },
+        {
+          label: 'BMI', data: bmiVals, yAxisID: 'y1',
+          borderColor: '#6f42c1', backgroundColor: 'rgba(111,66,193,.08)',
+          pointRadius: 4, fill: false, tension: 0.25, borderDash: [4, 2],
+        },
+      ],
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { position: 'bottom' } },
+      scales: {
+        y:  { position: 'left',  title: { display: true, text: 'kg' } },
+        y1: { position: 'right', title: { display: true, text: 'BMI' }, grid: { display: false } },
+      },
+    },
+  });
+  // Weight summary
+  const wSummary = document.getElementById('trendWeightSummary');
+  if (wSummary) {
+    if (wVals.length === 0) wSummary.textContent = '— ไม่มีข้อมูลน้ำหนัก —';
+    else {
+      const last = wVals[wVals.length - 1];
+      const dWeight = _trendDelta(wVals);
+      const lastBmi = bmiVals[bmiVals.length - 1];
+      const arrow = dWeight === null ? '' : (dWeight > 0 ? ' ↑+' + dWeight + ' kg' : dWeight < 0 ? ' ↓' + dWeight + ' kg' : ' →');
+      wSummary.innerHTML = 'ล่าสุด <strong>' + last + ' kg</strong>'
+        + (lastBmi ? ' (BMI ' + lastBmi + ')' : '')
+        + '<small class="text-muted">' + arrow + ' จากครั้งแรก</small>';
+    }
+  }
+
+  /* ----- Lipid (LDL / HDL / TG) ----- */
+  const lipidLabs = labs.filter(l => parseFloat(l.LDL) || parseFloat(l.HDL) || parseFloat(l.Triglyceride));
+  const lipidLabels = lipidLabs.map(l => _trendDateLabel(l.LabDate));
+  _renderChart('trendLipidChart', {
+    type: 'line',
+    data: {
+      labels: lipidLabels,
+      datasets: [
+        {
+          label: 'LDL', data: lipidLabs.map(l => parseFloat(l.LDL) || null),
+          borderColor: '#dc3545', backgroundColor: 'rgba(220,53,69,.05)',
+          pointRadius: 4, fill: false, tension: 0.25,
+        },
+        {
+          label: 'HDL', data: lipidLabs.map(l => parseFloat(l.HDL) || null),
+          borderColor: '#198754', backgroundColor: 'rgba(25,135,84,.05)',
+          pointRadius: 4, fill: false, tension: 0.25,
+        },
+        {
+          label: 'Triglyceride', data: lipidLabs.map(l => parseFloat(l.Triglyceride) || null),
+          borderColor: '#6c757d', backgroundColor: 'rgba(108,117,125,.05)',
+          pointRadius: 4, fill: false, tension: 0.25, borderDash: [4, 2],
+        },
+        _trendReferenceLine('LDL เป้า 100', 100, lipidLabels.length, 'rgba(220,53,69,.4)'),
+        _trendReferenceLine('TG เป้า 150', 150, lipidLabels.length, 'rgba(108,117,125,.4)'),
+      ],
+    },
+    options: _trendChartOptions({ yMin: 0, yMax: 350, unit: 'mg/dL' }),
+  });
+}
+
+/**
+ * ตัวเลือกร่วมของ Chart.js สำหรับ trend chart ทั่วไป
+ */
+function _trendChartOptions(opts) {
+  return {
+    responsive: true,
+    maintainAspectRatio: false,
+    interaction: { intersect: false, mode: 'index' },
+    plugins: {
+      legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 11 } } },
+      tooltip: {
+        callbacks: {
+          label: (ctx) => ctx.dataset.label + ': ' + ctx.parsed.y + (opts.unit ? ' ' + opts.unit : ''),
+        },
+      },
+    },
+    scales: {
+      y: {
+        suggestedMin: opts.yMin,
+        suggestedMax: opts.yMax,
+        title: opts.unit ? { display: true, text: opts.unit, font: { size: 10 } } : undefined,
+      },
+      x: { ticks: { autoSkip: true, maxTicksLimit: 8, font: { size: 10 } } },
+    },
+  };
+}
+
+/**
+ * ใส่บรรทัดสรุปใต้ชื่อกราฟ — ค่าล่าสุด, แนวโน้ม (เปรียบเทียบจากครั้งแรก)
+ */
+function _setTrendSummary(elId, values, unit, goodMax, midMax, lowerIsBetter) {
+  const el = document.getElementById(elId);
+  if (!el) return;
+  if (!values || values.length === 0) {
+    el.textContent = '— ไม่มีข้อมูล —';
+    return;
+  }
+  const last = values[values.length - 1];
+  const delta = _trendDelta(values);
+  const inGood = (lowerIsBetter ? last < goodMax : last > goodMax);
+  const inMid  = !inGood && (lowerIsBetter ? last < midMax : true);
+  const cls = inGood ? 'text-success' : (inMid ? 'text-warning' : 'text-danger');
+  const status = inGood ? '✓ ในเกณฑ์' : (inMid ? '⚠ เกินเกณฑ์เล็กน้อย' : '⚠ เกินเกณฑ์มาก');
+  let arrow = '';
+  if (delta !== null) {
+    if (delta > 0) arrow = ' <small>↑ +' + delta + (unit || '') + ' จากครั้งแรก</small>';
+    else if (delta < 0) arrow = ' <small>↓ ' + delta + (unit || '') + ' จากครั้งแรก</small>';
+    else arrow = ' <small>→ คงที่</small>';
+  }
+  el.innerHTML = '<span class="' + cls + '">ล่าสุด <strong>' + last + (unit || '') + '</strong> ' + status + '</span>' + arrow;
 }
 
 /* ===================================================================
