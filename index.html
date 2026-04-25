@@ -485,6 +485,12 @@ body {
           <i class="bi bi-box-arrow-in-right me-1"></i>เข้าสู่ระบบ
         </button>
 
+        <div class="text-center mt-2">
+          <a href="#" onclick="openForgotPasswordModal(); return false;" style="color:#6c757d;font-size:.9rem;text-decoration:none;">
+            <i class="bi bi-key"></i> ลืมรหัสผ่าน?
+          </a>
+        </div>
+
         <div class="login-divider">หรือ</div>
 
         <button class="login-secondary" onclick="openRegisterModal()">
@@ -532,6 +538,7 @@ body {
               <i class="bi bi-person-circle"></i> <span id="userInfo">-</span>
             </a>
             <ul class="dropdown-menu dropdown-menu-end">
+              <li><a class="dropdown-item" href="#" onclick="openProfileModal(); return false;"><i class="bi bi-person-circle"></i> โปรไฟล์ของฉัน</a></li>
               <li><a class="dropdown-item" href="#" onclick="openChangePasswordModal(); return false;"><i class="bi bi-key-fill"></i> เปลี่ยนรหัสผ่าน</a></li>
               <li><hr class="dropdown-divider"></li>
               <li><a class="dropdown-item text-danger" href="#" onclick="doLogout(); return false;"><i class="bi bi-box-arrow-right"></i> ออกจากระบบ</a></li>
@@ -1466,6 +1473,7 @@ body {
       <ul class="nav nav-tabs mb-3" id="userTabs">
         <li class="nav-item"><a class="nav-link active" href="#" onclick="switchUserTab('pending', event)"><i class="bi bi-hourglass-split"></i> รออนุมัติ <span id="tabPendingBadge" class="badge bg-danger">0</span></a></li>
         <li class="nav-item"><a class="nav-link" href="#" onclick="switchUserTab('all', event)"><i class="bi bi-list-ul"></i> ผู้ใช้ทั้งหมด</a></li>
+        <li class="nav-item"><a class="nav-link" href="#" onclick="switchUserTab('pwreset', event)"><i class="bi bi-key"></i> ลืมรหัสผ่าน <span id="tabPwResetBadge" class="badge bg-warning text-dark">0</span></a></li>
       </ul>
 
       <div id="userTabPending" class="user-tab-panel">
@@ -1492,6 +1500,24 @@ body {
                 <th>ชื่อผู้ใช้</th><th>ชื่อ-สกุล</th><th>เบอร์โทร</th><th>บทบาท</th><th>หมู่บ้าน</th><th>สถานะ</th><th>เข้าล่าสุด</th><th style="width:220px;">การจัดการ</th>
               </tr></thead>
               <tbody id="allUsersTable"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <div id="userTabPwreset" class="user-tab-panel" style="display:none;">
+        <div class="alert alert-info small mb-3">
+          <i class="bi bi-info-circle"></i> ผู้ใช้ที่ลืมรหัสผ่านจะส่งคำขอเข้ามาที่นี่
+          — admin ตรวจตัวตน (เช่น โทรกลับเบอร์ที่ลงทะเบียน) แล้วกด <strong>รีเซ็ตให้</strong>
+          เพื่อตั้งรหัสผ่านชั่วคราว และแจ้งผู้ใช้ทาง LINE/โทรศัพท์
+        </div>
+        <div class="card border-0 shadow-sm">
+          <div class="table-responsive">
+            <table class="table table-hover mb-0">
+              <thead class="table-light"><tr>
+                <th>ชื่อผู้ใช้</th><th>เบอร์โทรที่กรอก</th><th>ส่งคำขอเมื่อ</th><th style="width:240px;">การจัดการ</th>
+              </tr></thead>
+              <tbody id="pwResetTable"></tbody>
             </table>
           </div>
         </div>
@@ -1647,6 +1673,54 @@ body {
   </div>
 </div>
 
+<!-- ===================== FORGOT PASSWORD MODAL ===================== -->
+<div class="modal fade" id="forgotPasswordModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header" style="background:linear-gradient(135deg,#fd7e14 0%,#dc3545 100%);color:#fff;">
+        <h5 class="modal-title"><i class="bi bi-key me-2"></i>ลืมรหัสผ่าน</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div class="alert alert-warning small mb-3">
+          <i class="bi bi-info-circle"></i> ระบบจะส่งคำขอไปยัง <strong>admin</strong> เพื่อรีเซ็ตรหัสผ่านให้
+          — admin จะติดต่อกลับทางเบอร์โทรที่ท่านลงทะเบียนไว้เพื่อแจ้งรหัสผ่านชั่วคราว
+        </div>
+        <div class="mb-3">
+          <label class="form-label"><i class="bi bi-person-fill me-1"></i>ชื่อผู้ใช้</label>
+          <input type="text" class="form-control" id="fpUsername" placeholder="ชื่อผู้ใช้ที่ลงทะเบียนไว้">
+        </div>
+        <div class="mb-3">
+          <label class="form-label"><i class="bi bi-telephone-fill me-1"></i>เบอร์โทรศัพท์ (ที่ลงทะเบียน)</label>
+          <input type="tel" class="form-control" id="fpPhone" placeholder="เช่น 0812345678" inputmode="numeric">
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">ยกเลิก</button>
+        <button type="button" class="btn btn-warning" onclick="doRequestPasswordReset()"><i class="bi bi-send"></i> ส่งคำขอ</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== PROFILE MODAL ===================== -->
+<div class="modal fade" id="profileModal" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header" style="background:linear-gradient(135deg,#1a8754 0%,#0d6efd 100%);color:#fff;">
+        <h5 class="modal-title"><i class="bi bi-person-circle me-2"></i>โปรไฟล์ของฉัน</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body" id="profileBody">
+        <div class="text-center text-muted py-4"><i class="bi bi-hourglass-split"></i> กำลังโหลด...</div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">ปิด</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- ===================== ADMIN EDIT USER MODAL ===================== -->
 <div class="modal fade" id="editUserModal" tabindex="-1">
   <div class="modal-dialog">
@@ -1696,7 +1770,7 @@ body {
    ============================================================ */
 
 // !!! เมื่อ deploy เป็น Web App แล้ว ให้เปลี่ยน APP_URL ด้านล่างเป็น URL จริง !!!
-const APP_URL = 'https://script.google.com/macros/s/AKfycbzWmycX1nL4J4_oOKRVMoWuhiJvOQA34Iic6qt0Za1QppQD0kdzcnsH5oqIVXKMWL_LZg/exec';
+const APP_URL = 'https://script.google.com/macros/s/AKfycbx6lzkihBffrmxZ6sJwySC9T6ehOMWHbidb84ui-bef4hoN5bRmwPPB2kvAB2j5K-P2hw/exec';
 
 let currentUser = null;
 let currentPatient = null;
@@ -1877,17 +1951,32 @@ async function doLogin() {
 
   showLoading('กำลังเข้าสู่ระบบ...');
   try {
-    const r = await jsonp({ action: 'login', username: u, password: p });
+    const r = await jsonp({ action: 'login', username: u, password: p, userAgent: navigator.userAgent });
     Swal.close();
     if (r.success) {
       currentUser = r.data;
+      // เก็บ token ไว้ใน sessionStorage เพื่อ auto-resume
+      try { sessionStorage.setItem('dm_token', currentUser.token); } catch (e) {}
       document.getElementById('userInfo').innerText = currentUser.fullName + ' (' + roleLabel(currentUser.role) + ')';
       applyRoleUI(currentUser.role);
       document.getElementById('loginPage').classList.remove('active');
       document.getElementById('appPage').classList.add('active');
       initVillageDropdowns();
       showPage('dashboard');
-      showSuccess('ยินดีต้อนรับ ' + currentUser.fullName);
+
+      // แสดง toast "เข้าใช้ครั้งล่าสุด" — ให้ผู้ใช้สังเกต login ผิดปกติ
+      const prev = currentUser.prevLastLoginAt;
+      if (prev) {
+        Swal.fire({
+          toast: true, position: 'top-end',
+          icon: 'info',
+          title: 'ยินดีต้อนรับ ' + currentUser.fullName,
+          html: '<div style="font-size:.85rem;text-align:left;">เข้าใช้ครั้งล่าสุด: <strong>' + escapeHtml(prev) + '</strong><br><span class="text-muted small">หากไม่ใช่ท่าน — เปลี่ยนรหัสผ่านทันที</span></div>',
+          showConfirmButton: false, timer: 6500, timerProgressBar: true
+        });
+      } else {
+        showSuccess('ยินดีต้อนรับ ' + currentUser.fullName);
+      }
     } else {
       showError(r.message);
     }
@@ -1950,6 +2039,7 @@ async function doLogout() {
   try {
     await jsonp({ action: 'logout', token: currentUser.token });
   } catch (e) {}
+  try { sessionStorage.removeItem('dm_token'); } catch (e) {}
   Swal.close();
   currentUser = null;
   document.getElementById('loginUser').value = '';
@@ -3537,7 +3627,7 @@ async function loadPendingBadge() {
 
 async function loadUsersPage() {
   switchUserTab('pending');
-  await Promise.all([loadPendingUsers(), loadAllUsers()]);
+  await Promise.all([loadPendingUsers(), loadAllUsers(), loadPwResetRequests()]);
 }
 
 function switchUserTab(tab, ev) {
@@ -3546,6 +3636,7 @@ function switchUserTab(tab, ev) {
   document.getElementById('userTab' + tab.charAt(0).toUpperCase() + tab.slice(1)).style.display = 'block';
   if (ev && ev.currentTarget) ev.currentTarget.classList.add('active');
   else document.querySelector('#userTabs .nav-link').classList.add('active');
+  if (tab === 'pwreset') loadPwResetRequests();
 }
 
 async function loadPendingUsers() {
@@ -3989,6 +4080,220 @@ async function doRejectPatient(pid, name) {
     loadPendingPatients();
     loadPendingPatientsBadge();
   } catch (e) { Swal.close(); showError(e.toString()); }
+}
+
+/* ===================================================================
+   SESSION AUTO-RESUME, FORGOT PASSWORD, PROFILE
+   =================================================================== */
+
+/**
+ * เมื่อเปิดหน้าใหม่ — ลอง resume session จาก sessionStorage
+ * (token อยู่ใน sheet Sessions แม้ CacheService หายก็ยังใช้ได้)
+ */
+async function tryResumeSession() {
+  try {
+    const tok = sessionStorage.getItem('dm_token');
+    if (!tok) return;
+    const r = await jsonp({ action: 'getMyProfile', token: tok });
+    if (!r.success) {
+      sessionStorage.removeItem('dm_token');
+      return;
+    }
+    // Build currentUser from profile
+    currentUser = {
+      userId: r.data.userId, username: r.data.username,
+      fullName: r.data.fullName, role: r.data.role,
+      village: r.data.village, phone: r.data.phone, token: tok
+    };
+    document.getElementById('userInfo').innerText = currentUser.fullName + ' (' + roleLabel(currentUser.role) + ')';
+    applyRoleUI(currentUser.role);
+    document.getElementById('loginPage').classList.remove('active');
+    document.getElementById('appPage').classList.add('active');
+    initVillageDropdowns();
+    showPage('dashboard');
+  } catch (e) { /* silent */ }
+}
+// auto-trigger ตอนหน้าโหลด
+window.addEventListener('DOMContentLoaded', () => { setTimeout(tryResumeSession, 100); });
+
+/* === Forgot password === */
+function openForgotPasswordModal() {
+  document.getElementById('fpUsername').value = '';
+  document.getElementById('fpPhone').value = '';
+  new bootstrap.Modal(document.getElementById('forgotPasswordModal')).show();
+}
+
+async function doRequestPasswordReset() {
+  const username = document.getElementById('fpUsername').value.trim();
+  const phone = document.getElementById('fpPhone').value.trim();
+  if (!username || !phone) { showError('กรุณากรอกชื่อผู้ใช้และเบอร์โทร'); return; }
+  showLoading('กำลังส่งคำขอ...');
+  try {
+    const r = await jsonp({ action: 'requestPasswordReset', username: username, phone: phone });
+    Swal.close();
+    bootstrap.Modal.getInstance(document.getElementById('forgotPasswordModal')).hide();
+    // backend คืน generic message เสมอ — แสดงข้อความแบบเดียวเพื่อกัน enumeration
+    Swal.fire({
+      icon: 'info',
+      title: 'คำขอถูกส่งแล้ว',
+      html: '<div class="text-start">' + escapeHtml(r.message || '') + '<br><br>'
+        + '<small class="text-muted">โปรดรอเจ้าหน้าที่ admin ติดต่อกลับทางเบอร์โทรที่ลงทะเบียนไว้</small></div>',
+      confirmButtonColor: '#1a8754'
+    });
+  } catch (e) { Swal.close(); showError(e.toString()); }
+}
+
+/* === Profile modal === */
+async function openProfileModal() {
+  const modal = new bootstrap.Modal(document.getElementById('profileModal'));
+  modal.show();
+  const body = document.getElementById('profileBody');
+  body.innerHTML = '<div class="text-center text-muted py-4"><i class="bi bi-hourglass-split"></i> กำลังโหลด...</div>';
+  try {
+    const r = await jsonp({ action: 'getMyProfile', token: currentUser.token });
+    if (!r.success) { body.innerHTML = '<div class="alert alert-danger">' + escapeHtml(r.message || 'ไม่สามารถโหลดได้') + '</div>'; return; }
+    const d = r.data;
+    const sessionRows = (d.sessions || []).map(s => `
+      <tr ${s.isCurrent ? 'class="table-success"' : ''}>
+        <td>${escapeHtml(s.createdAt || '-')}</td>
+        <td>${escapeHtml(s.lastActivity || '-')}</td>
+        <td class="small text-muted" style="max-width:280px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${escapeHtml(s.userAgent || '')}">${escapeHtml((s.userAgent || '').substring(0, 50))}${(s.userAgent || '').length > 50 ? '...' : ''}</td>
+        <td>${s.isCurrent ? '<span class="badge bg-success">เครื่องนี้</span>' : ''}</td>
+      </tr>`).join('');
+
+    body.innerHTML = `
+      <div class="row g-2 mb-3">
+        <div class="col-md-6">
+          <label class="form-label small text-muted mb-0">ชื่อผู้ใช้</label>
+          <div class="fw-bold">${escapeHtml(d.username)}</div>
+        </div>
+        <div class="col-md-6">
+          <label class="form-label small text-muted mb-0">ชื่อ-สกุล</label>
+          <div class="fw-bold">${escapeHtml(d.fullName)}</div>
+        </div>
+        <div class="col-md-4">
+          <label class="form-label small text-muted mb-0">บทบาท</label>
+          <div>${escapeHtml(roleLabel(d.role))}</div>
+        </div>
+        <div class="col-md-4">
+          <label class="form-label small text-muted mb-0">หมู่บ้าน</label>
+          <div>${d.village ? 'หมู่ ' + escapeHtml(d.village) : '-'}</div>
+        </div>
+        <div class="col-md-4">
+          <label class="form-label small text-muted mb-0">เบอร์โทร</label>
+          <div>${escapeHtml(d.phone || '-')}</div>
+        </div>
+      </div>
+
+      <div class="alert alert-success small d-flex align-items-center gap-2">
+        <i class="bi bi-clock-history fs-4"></i>
+        <div class="flex-grow-1">
+          <strong>เข้าใช้ครั้งล่าสุด:</strong> ${escapeHtml(d.lastLoginAt || '— ยังไม่เคยเข้าใช้ —')}
+          <div class="small text-muted">หากเวลาที่แสดงไม่ตรงกับที่ท่านเข้าใช้จริง — เปลี่ยนรหัสผ่านทันทีและแจ้ง admin</div>
+        </div>
+      </div>
+
+      <div class="alert alert-info small">
+        <i class="bi bi-shield-check"></i> <strong>Session ที่ active อยู่:</strong> ${d.activeSessionCount} รายการ
+        — หาก session ผิดปกติ (มากกว่า 1-2 จุด) ให้ <strong>เปลี่ยนรหัสผ่าน</strong> ทันที
+        ระบบจะ invalidate session อื่นเองเมื่อหมดอายุ
+      </div>
+
+      <h6 class="mt-3"><i class="bi bi-list-check"></i> ประวัติ Session ล่าสุด</h6>
+      <div class="table-responsive">
+        <table class="table table-sm table-hover">
+          <thead class="table-light"><tr>
+            <th>เริ่มเมื่อ</th><th>กิจกรรมล่าสุด</th><th>อุปกรณ์ (User-Agent)</th><th></th>
+          </tr></thead>
+          <tbody>${sessionRows || '<tr><td colspan="4" class="text-center text-muted">ไม่มี session ที่ active</td></tr>'}</tbody>
+        </table>
+      </div>
+    `;
+  } catch (e) { body.innerHTML = '<div class="alert alert-danger">' + escapeHtml(e.toString()) + '</div>'; }
+}
+
+/* === Admin: pending password reset requests === */
+async function loadPwResetRequests() {
+  if (!currentUser || currentUser.role !== 'admin') return;
+  try {
+    const r = await jsonp({ action: 'getPendingPasswordResets', token: currentUser.token });
+    if (!r.success) return;
+    const list = r.data || [];
+    const tbody = document.getElementById('pwResetTable');
+    const tabBadge = document.getElementById('tabPwResetBadge');
+    if (tabBadge) {
+      tabBadge.innerText = list.length;
+      tabBadge.style.display = list.length > 0 ? '' : 'none';
+    }
+    if (!tbody) return;
+    if (list.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="4" class="text-center text-muted py-3">ไม่มีคำขอที่รอดำเนินการ</td></tr>';
+      return;
+    }
+    tbody.innerHTML = list.map(req => `
+      <tr>
+        <td><strong>${escapeHtml(req.username)}</strong></td>
+        <td><i class="bi bi-telephone"></i> ${escapeHtml(req.phone)}</td>
+        <td class="small text-muted">${escapeHtml(req.createdAt || '-')}</td>
+        <td>
+          <div class="btn-group btn-group-sm">
+            <button class="btn btn-success" onclick="doProcessPwReset('${escapeJs(req.username)}')"><i class="bi bi-key-fill"></i> รีเซ็ตให้</button>
+            <button class="btn btn-outline-danger" onclick="doDismissPwReset('${escapeJs(req.requestId)}')"><i class="bi bi-x-lg"></i> ปฏิเสธ</button>
+          </div>
+        </td>
+      </tr>
+    `).join('');
+  } catch (e) { /* silent */ }
+}
+
+async function doProcessPwReset(username) {
+  // หา UserID จาก username (ใช้ getAllUsers หาก cache ไม่มี)
+  const ok = await Swal.fire({
+    icon: 'warning', title: 'รีเซ็ตรหัสผ่านให้ ' + escapeHtml(username) + ' ?',
+    html: 'กรอกรหัสผ่านชั่วคราว (อย่างน้อย 6 ตัวอักษร) — กรุณาแจ้งผู้ใช้ทาง LINE/โทร',
+    input: 'text',
+    inputPlaceholder: 'เช่น TempPass2569',
+    showCancelButton: true, confirmButtonText: 'รีเซ็ต', cancelButtonText: 'ยกเลิก',
+    confirmButtonColor: '#1a8754',
+    inputValidator: (v) => !v ? 'กรุณากรอกรหัสผ่าน' : (v.length < 6 ? 'อย่างน้อย 6 ตัวอักษร' : undefined)
+  });
+  if (!ok.isConfirmed) return;
+  // ต้องหา userId ก่อน — เรียก getAllUsers
+  showLoading('กำลังค้นหาผู้ใช้...');
+  try {
+    const ru = await jsonp({ action: 'getAllUsers', token: currentUser.token });
+    if (!ru.success) { Swal.close(); showError(ru.message); return; }
+    const u = (ru.data || []).find(x => String(x.username || x.Username) === username);
+    if (!u) { Swal.close(); showError('ไม่พบผู้ใช้ในระบบ'); return; }
+    const uid = u.userId || u.UserID;
+    const rr = await jsonp({ action: 'resetUserPassword', token: currentUser.token, userId: uid, newPassword: ok.value });
+    Swal.close();
+    if (!rr.success) { showError(rr.message); return; }
+    await Swal.fire({
+      icon: 'success', title: 'รีเซ็ตเรียบร้อย',
+      html: 'รหัสผ่านชั่วคราวของ <strong>' + escapeHtml(username) + '</strong>:<br>'
+        + '<div class="alert alert-info my-2 fs-5 fw-bold">' + escapeHtml(ok.value) + '</div>'
+        + '<small class="text-muted">โปรดแจ้งผู้ใช้ทาง LINE/โทรศัพท์ และให้เปลี่ยนรหัสผ่านทันทีหลัง login</small>',
+      confirmButtonColor: '#1a8754'
+    });
+    loadPwResetRequests();
+  } catch (e) { Swal.close(); showError(e.toString()); }
+}
+
+async function doDismissPwReset(requestId) {
+  const ok = await Swal.fire({
+    icon: 'warning', title: 'ปฏิเสธคำขอ?',
+    text: 'คำขอจะถูก mark เป็น dismissed (ใช้กรณีคิดว่า spam หรือไม่ใช่ผู้ใช้จริง)',
+    showCancelButton: true, confirmButtonText: 'ปฏิเสธ', cancelButtonText: 'ยกเลิก',
+    confirmButtonColor: '#dc3545'
+  });
+  if (!ok.isConfirmed) return;
+  try {
+    const r = await jsonp({ action: 'dismissPasswordResetRequest', token: currentUser.token, requestId: requestId });
+    if (!r.success) { showError(r.message); return; }
+    showSuccess('ปฏิเสธคำขอเรียบร้อย');
+    loadPwResetRequests();
+  } catch (e) { showError(e.toString()); }
 }
 
 /* ===== Login: toggle password visibility ===== */
