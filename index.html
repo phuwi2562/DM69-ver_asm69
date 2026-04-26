@@ -1092,6 +1092,8 @@ body {
         <li class="nav-item"><button class="nav-link" onclick="switchTab('lifestyle')"><i class="bi bi-stars"></i> 6 เสาหลักเวชศาสตร์วิถีชีวิต</button></li>
         <li class="nav-item"><button class="nav-link" onclick="switchTab('stage')"><i class="bi bi-compass"></i> Stages of Change / MI</button></li>
         <li class="nav-item"><button class="nav-link" onclick="switchTab('annual')"><i class="bi bi-clipboard2-check"></i> ตรวจประจำปี</button></li>
+        <li class="nav-item"><button class="nav-link" onclick="switchTab('meds')"><i class="bi bi-capsule-pill"></i> ยา</button></li>
+        <li class="nav-item"><button class="nav-link" onclick="switchTab('appts')"><i class="bi bi-calendar-event"></i> นัดหมาย</button></li>
         <li class="nav-item"><button class="nav-link" onclick="switchTab('trend')"><i class="bi bi-graph-up-arrow"></i> แนวโน้ม</button></li>
         <li class="nav-item"><button class="nav-link" onclick="switchTab('history')"><i class="bi bi-clock-history"></i> ประวัติ</button></li>
       </ul>
@@ -1446,6 +1448,44 @@ body {
         </div>
       </div>
 
+      <!-- TAB: MEDICATIONS -->
+      <div id="tabMeds" class="tab-content-panel" style="display:none;">
+        <div class="card border-0 shadow-sm">
+          <div class="card-body">
+            <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+              <h6 class="mb-0 text-success"><i class="bi bi-capsule-pill"></i> ยาที่ผู้ป่วยกำลังใช้</h6>
+              <div class="d-flex gap-2 align-items-center">
+                <div class="form-check form-switch m-0">
+                  <input class="form-check-input" type="checkbox" id="medsShowInactive" onchange="loadMedications()">
+                  <label class="form-check-label small" for="medsShowInactive">รวมยาที่หยุดแล้ว</label>
+                </div>
+                <button class="btn btn-sm btn-primary-custom" onclick="openMedModal()"><i class="bi bi-plus-lg"></i> เพิ่มยา</button>
+              </div>
+            </div>
+            <div class="alert alert-info small py-2">
+              <i class="bi bi-info-circle"></i> หมวดยา: <span class="badge bg-success">เบาหวาน</span>
+              <span class="badge bg-danger">ความดัน</span>
+              <span class="badge bg-warning text-dark">ไขมัน</span>
+              <span class="badge bg-secondary">อื่น ๆ</span>
+            </div>
+            <div id="medsList"><div class="text-center text-muted py-3">— ยังไม่ได้โหลดข้อมูล —</div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB: APPOINTMENTS -->
+      <div id="tabAppts" class="tab-content-panel" style="display:none;">
+        <div class="card border-0 shadow-sm">
+          <div class="card-body">
+            <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+              <h6 class="mb-0 text-success"><i class="bi bi-calendar-event"></i> นัดหมาย</h6>
+              <button class="btn btn-sm btn-primary-custom" onclick="openApptModal()"><i class="bi bi-plus-lg"></i> เพิ่มนัด</button>
+            </div>
+            <div id="apptsList"><div class="text-center text-muted py-3">— ยังไม่ได้โหลดข้อมูล —</div></div>
+          </div>
+        </div>
+      </div>
+
       <!-- TAB: TREND CHARTS -->
       <div id="tabTrend" class="tab-content-panel" style="display:none;">
         <div class="d-flex justify-content-between align-items-center mb-2 flex-wrap gap-2">
@@ -1791,6 +1831,124 @@ body {
   </div>
 </div>
 
+<!-- ===================== MEDICATION MODAL ===================== -->
+<div class="modal fade" id="medModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header" style="background:linear-gradient(135deg,#1a8754 0%,#0d6efd 100%);color:#fff;">
+        <h5 class="modal-title"><i class="bi bi-capsule-pill me-2"></i><span id="medModalTitle">เพิ่มยา</span></h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="med_MedicationID">
+        <div class="row g-2">
+          <div class="col-md-7">
+            <label class="form-label small mb-1">ชื่อยา</label>
+            <input type="text" class="form-control" id="med_DrugName" list="medSuggestions" placeholder="เช่น Metformin">
+            <datalist id="medSuggestions">
+              <!-- DM -->
+              <option value="Metformin"><option value="Glipizide"><option value="Glimepiride">
+              <option value="Insulin Glargine"><option value="Insulin NPH"><option value="Mixtard">
+              <option value="Sitagliptin"><option value="Linagliptin">
+              <option value="Empagliflozin"><option value="Dapagliflozin"><option value="Pioglitazone">
+              <!-- HT -->
+              <option value="Enalapril"><option value="Losartan"><option value="Amlodipine">
+              <option value="Hydrochlorothiazide"><option value="Atenolol"><option value="Metoprolol">
+              <!-- DLP -->
+              <option value="Simvastatin"><option value="Atorvastatin"><option value="Rosuvastatin">
+              <option value="Gemfibrozil"><option value="Fenofibrate">
+              <!-- Other -->
+              <option value="Aspirin"><option value="Clopidogrel">
+            </datalist>
+          </div>
+          <div class="col-md-5">
+            <label class="form-label small mb-1">หมวดยา</label>
+            <select class="form-select" id="med_DrugCategory">
+              <option value="diabetes">เบาหวาน</option>
+              <option value="ht">ความดัน</option>
+              <option value="dlp">ไขมัน</option>
+              <option value="other">อื่น ๆ</option>
+            </select>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label small mb-1">ขนาด (Dose)</label>
+            <input type="text" class="form-control" id="med_Dose" placeholder="เช่น 500 mg">
+          </div>
+          <div class="col-md-6">
+            <label class="form-label small mb-1">วิธีใช้ (Frequency)</label>
+            <input type="text" class="form-control" id="med_Frequency" list="freqSuggestions" placeholder="เช่น เช้า-เย็น หลังอาหาร">
+            <datalist id="freqSuggestions">
+              <option value="OD เช้า ก่อนอาหาร">
+              <option value="OD เช้า หลังอาหาร">
+              <option value="BID เช้า-เย็น หลังอาหาร">
+              <option value="TID เช้า-กลางวัน-เย็น หลังอาหาร">
+              <option value="HS ก่อนนอน">
+              <option value="PRN เมื่อต้องการ">
+            </datalist>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label small mb-1">วันที่เริ่ม</label>
+            <input type="date" class="form-control" id="med_StartDate">
+          </div>
+          <div class="col-md-6">
+            <label class="form-label small mb-1">วันที่หยุด (เว้นว่าง = ยังใช้อยู่)</label>
+            <input type="date" class="form-control" id="med_EndDate">
+          </div>
+          <div class="col-12">
+            <label class="form-label small mb-1">บันทึกเพิ่มเติม</label>
+            <textarea class="form-control" id="med_Notes" rows="2"></textarea>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">ยกเลิก</button>
+        <button type="button" class="btn btn-primary-custom" onclick="doSaveMedication()"><i class="bi bi-save"></i> บันทึก</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== APPOINTMENT MODAL ===================== -->
+<div class="modal fade" id="apptModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header" style="background:linear-gradient(135deg,#1a8754 0%,#0d6efd 100%);color:#fff;">
+        <h5 class="modal-title"><i class="bi bi-calendar-event me-2"></i><span id="apptModalTitle">เพิ่มนัดหมาย</span></h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="appt_AppointmentID">
+        <div class="row g-2">
+          <div class="col-md-6">
+            <label class="form-label small mb-1">วันที่นัด</label>
+            <input type="date" class="form-control" id="appt_AppointmentDate">
+          </div>
+          <div class="col-md-6">
+            <label class="form-label small mb-1">ประเภทนัด</label>
+            <select class="form-select" id="appt_AppointmentType">
+              <option value="regular">นัดติดตามทั่วไป</option>
+              <option value="lab">เจาะเลือด/Lab</option>
+              <option value="foot">ตรวจเท้า</option>
+              <option value="eye">ตรวจตา</option>
+              <option value="dental">ตรวจฟัน</option>
+              <option value="vaccine">รับวัคซีน</option>
+              <option value="other">อื่น ๆ</option>
+            </select>
+          </div>
+          <div class="col-12">
+            <label class="form-label small mb-1">บันทึกเพิ่มเติม</label>
+            <textarea class="form-control" id="appt_Notes" rows="2" placeholder="เช่น ก่อนนัดต้องงดอาหาร 8 ชม."></textarea>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">ยกเลิก</button>
+        <button type="button" class="btn btn-primary-custom" onclick="doSaveAppointment()"><i class="bi bi-save"></i> บันทึก</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- ===================== PROFILE MODAL ===================== -->
 <div class="modal fade" id="profileModal" tabindex="-1">
   <div class="modal-dialog modal-lg">
@@ -2030,6 +2188,8 @@ function switchTab(tab) {
   if (tab === 'history') loadHistory();
   if (tab === 'annual') renderAnnualExamUI();
   if (tab === 'trend') loadPatientTrendData();
+  if (tab === 'meds') loadMedications();
+  if (tab === 'appts') loadAppointments();
 }
 
 /* ---------- Authentication ---------- */
@@ -3929,6 +4089,301 @@ function escapeJs(s) {
 }
 
 /* ===================================================================
+   MEDICATIONS — ยาเบาหวาน/ความดัน/ไขมัน
+   =================================================================== */
+const _MED_CATS = {
+  diabetes: { label: 'เบาหวาน', cls: 'bg-success', icon: 'bi-droplet-fill' },
+  ht:       { label: 'ความดัน', cls: 'bg-danger',  icon: 'bi-heart-pulse-fill' },
+  dlp:      { label: 'ไขมัน',   cls: 'bg-warning text-dark', icon: 'bi-droplet' },
+  other:    { label: 'อื่น ๆ',  cls: 'bg-secondary', icon: 'bi-capsule' }
+};
+
+async function loadMedications() {
+  if (!currentPatient) return;
+  const wrap = document.getElementById('medsList');
+  wrap.innerHTML = '<div class="text-center text-muted py-3"><i class="bi bi-hourglass-split"></i> กำลังโหลด...</div>';
+  const includeInactive = document.getElementById('medsShowInactive').checked ? 'true' : 'false';
+  try {
+    const r = await jsonp({ action: 'getMedications', token: currentUser.token,
+      patientId: currentPatient.PatientID, includeInactive: includeInactive });
+    if (!r.success) { wrap.innerHTML = '<div class="alert alert-danger">' + escapeHtml(r.message) + '</div>'; return; }
+    renderMedications(r.data || []);
+  } catch (e) { wrap.innerHTML = '<div class="alert alert-danger">' + escapeHtml(e.toString()) + '</div>'; }
+}
+
+function renderMedications(list) {
+  const wrap = document.getElementById('medsList');
+  if (!list || list.length === 0) {
+    wrap.innerHTML = '<div class="alert alert-light border text-center"><i class="bi bi-info-circle"></i> ยังไม่มีรายการยา — กด "เพิ่มยา" เพื่อบันทึก</div>';
+    return;
+  }
+  // group ตามหมวด
+  const groups = { diabetes: [], ht: [], dlp: [], other: [] };
+  list.forEach(m => { (groups[m.DrugCategory] || groups.other).push(m); });
+
+  let html = '';
+  ['diabetes', 'ht', 'dlp', 'other'].forEach(cat => {
+    const items = groups[cat];
+    if (!items || items.length === 0) return;
+    const meta = _MED_CATS[cat];
+    html += `<h6 class="mt-3 mb-2"><i class="bi ${meta.icon}"></i> <span class="badge ${meta.cls}">${meta.label}</span> <small class="text-muted">(${items.length})</small></h6>`;
+    items.forEach(m => {
+      const isActive = m.Active !== false;
+      const statusBadge = isActive
+        ? '<span class="badge bg-success">ใช้อยู่</span>'
+        : '<span class="badge bg-secondary">หยุดแล้ว</span>';
+      html += `
+        <div class="border rounded p-2 mb-2 ${isActive ? '' : 'bg-light'}">
+          <div class="d-flex flex-wrap gap-2 justify-content-between align-items-start">
+            <div class="flex-grow-1">
+              <div><strong>${escapeHtml(m.DrugName || '-')}</strong>
+                ${m.Dose ? '<span class="text-muted">' + escapeHtml(m.Dose) + '</span>' : ''}
+                ${statusBadge}
+              </div>
+              <div class="small text-muted">
+                <i class="bi bi-clock"></i> ${escapeHtml(m.Frequency || '-')}
+                · เริ่ม ${formatDateBE(m.StartDate)}
+                ${m.EndDate ? ' · หยุด ' + formatDateBE(m.EndDate) : ''}
+              </div>
+              ${m.Notes ? '<div class="small mt-1"><i class="bi bi-sticky"></i> ' + escapeHtml(m.Notes) + '</div>' : ''}
+            </div>
+            <div class="btn-group btn-group-sm">
+              <button class="btn btn-outline-primary" onclick="openMedModal('${escapeJs(m.MedicationID)}')"><i class="bi bi-pencil"></i></button>
+              ${isActive ? '<button class="btn btn-outline-warning" onclick="doDiscontinueMed(\'' + escapeJs(m.MedicationID) + '\', \'' + escapeJs(m.DrugName) + '\')"><i class="bi bi-stop-circle"></i> หยุดยา</button>' : ''}
+            </div>
+          </div>
+        </div>`;
+    });
+  });
+  wrap.innerHTML = html;
+}
+
+function openMedModal(medId) {
+  // reset
+  document.getElementById('med_MedicationID').value = medId || '';
+  document.getElementById('med_DrugName').value = '';
+  document.getElementById('med_DrugCategory').value = 'diabetes';
+  document.getElementById('med_Dose').value = '';
+  document.getElementById('med_Frequency').value = '';
+  document.getElementById('med_StartDate').value = new Date().toISOString().split('T')[0];
+  document.getElementById('med_EndDate').value = '';
+  document.getElementById('med_Notes').value = '';
+  document.getElementById('medModalTitle').innerText = medId ? 'แก้ไขยา' : 'เพิ่มยา';
+
+  if (medId) {
+    // หา med ใน list ที่ render อยู่
+    jsonp({ action: 'getMedications', token: currentUser.token, patientId: currentPatient.PatientID, includeInactive: 'true' })
+      .then(r => {
+        if (!r.success) return;
+        const m = (r.data || []).find(x => x.MedicationID === medId);
+        if (!m) return;
+        document.getElementById('med_DrugName').value = m.DrugName || '';
+        document.getElementById('med_DrugCategory').value = m.DrugCategory || 'other';
+        document.getElementById('med_Dose').value = m.Dose || '';
+        document.getElementById('med_Frequency').value = m.Frequency || '';
+        document.getElementById('med_StartDate').value = (m.StartDate || '').substring(0, 10);
+        document.getElementById('med_EndDate').value = (m.EndDate || '').substring(0, 10);
+        document.getElementById('med_Notes').value = m.Notes || '';
+      });
+  }
+  new bootstrap.Modal(document.getElementById('medModal')).show();
+}
+
+async function doSaveMedication() {
+  const data = {
+    MedicationID: document.getElementById('med_MedicationID').value || undefined,
+    PatientID: currentPatient.PatientID,
+    DrugName: document.getElementById('med_DrugName').value.trim(),
+    DrugCategory: document.getElementById('med_DrugCategory').value,
+    Dose: document.getElementById('med_Dose').value.trim(),
+    Frequency: document.getElementById('med_Frequency').value.trim(),
+    StartDate: document.getElementById('med_StartDate').value,
+    EndDate: document.getElementById('med_EndDate').value || '',
+    Notes: document.getElementById('med_Notes').value.trim()
+  };
+  if (!data.DrugName) { showError('กรุณากรอกชื่อยา'); return; }
+  showLoading('กำลังบันทึก...');
+  try {
+    const r = await apiCall({ action: 'saveMedication', token: currentUser.token, data: JSON.stringify(data) });
+    Swal.close();
+    if (!r.success) { showError(r.message); return; }
+    bootstrap.Modal.getInstance(document.getElementById('medModal')).hide();
+    showSuccess(r.message);
+    loadMedications();
+  } catch (e) { Swal.close(); showError(e.toString()); }
+}
+
+async function doDiscontinueMed(medId, drugName) {
+  const ok = await Swal.fire({
+    icon: 'warning', title: 'หยุดยา ' + escapeHtml(drugName) + '?',
+    input: 'select',
+    inputOptions: {
+      'side_effect': 'มีผลข้างเคียง',
+      'no_response': 'คุมไม่ได้ — เปลี่ยนยา',
+      'controlled': 'คุมได้ดีแล้ว — ลด/หยุด',
+      'pregnant': 'ตั้งครรภ์',
+      'allergic': 'แพ้ยา',
+      'other': 'อื่น ๆ'
+    },
+    inputPlaceholder: 'เลือกเหตุผล',
+    showCancelButton: true, confirmButtonText: 'หยุดยา', cancelButtonText: 'ยกเลิก',
+    confirmButtonColor: '#fd7e14',
+    inputValidator: (v) => !v ? 'กรุณาเลือกเหตุผล' : undefined
+  });
+  if (!ok.isConfirmed) return;
+  try {
+    const r = await jsonp({ action: 'discontinueMedication', token: currentUser.token, medicationId: medId, reason: ok.value });
+    if (!r.success) { showError(r.message); return; }
+    showSuccess(r.message);
+    loadMedications();
+  } catch (e) { showError(e.toString()); }
+}
+
+/* ===================================================================
+   APPOINTMENTS — นัดหมาย
+   =================================================================== */
+const _APPT_TYPES = {
+  regular: 'นัดติดตาม', lab: 'เจาะเลือด/Lab', foot: 'ตรวจเท้า',
+  eye: 'ตรวจตา', dental: 'ตรวจฟัน', vaccine: 'รับวัคซีน', other: 'อื่น ๆ'
+};
+const _APPT_STATUS = {
+  scheduled: { label: 'รอเข้ารับบริการ', cls: 'bg-info' },
+  completed: { label: 'มาตามนัด', cls: 'bg-success' },
+  missed:    { label: 'ไม่มาตามนัด', cls: 'bg-danger' },
+  cancelled: { label: 'ยกเลิก', cls: 'bg-secondary' }
+};
+
+async function loadAppointments() {
+  if (!currentPatient) return;
+  const wrap = document.getElementById('apptsList');
+  wrap.innerHTML = '<div class="text-center text-muted py-3"><i class="bi bi-hourglass-split"></i> กำลังโหลด...</div>';
+  try {
+    const r = await jsonp({ action: 'getAppointments', token: currentUser.token, patientId: currentPatient.PatientID });
+    if (!r.success) { wrap.innerHTML = '<div class="alert alert-danger">' + escapeHtml(r.message) + '</div>'; return; }
+    renderAppointments(r.data || []);
+  } catch (e) { wrap.innerHTML = '<div class="alert alert-danger">' + escapeHtml(e.toString()) + '</div>'; }
+}
+
+function renderAppointments(list) {
+  const wrap = document.getElementById('apptsList');
+  if (!list || list.length === 0) {
+    wrap.innerHTML = '<div class="alert alert-light border text-center"><i class="bi bi-info-circle"></i> ยังไม่มีนัดหมาย — กด "เพิ่มนัด" เพื่อบันทึก</div>';
+    return;
+  }
+  // แยก: upcoming + past
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  const upcoming = [], past = [];
+  list.forEach(a => {
+    const d = new Date(a.AppointmentDate);
+    const isUpcoming = (a.Status === 'scheduled' && d >= today);
+    (isUpcoming ? upcoming : past).push(a);
+  });
+  upcoming.sort((a, b) => (a.AppointmentDate || '').localeCompare(b.AppointmentDate || ''));
+
+  const renderItem = (a) => {
+    const stat = _APPT_STATUS[a.Status] || _APPT_STATUS.scheduled;
+    const typeName = _APPT_TYPES[a.AppointmentType] || a.AppointmentType;
+    const isUpcoming = a.Status === 'scheduled' && new Date(a.AppointmentDate) >= today;
+    return `
+      <div class="border rounded p-2 mb-2 ${isUpcoming ? 'border-info bg-light' : ''}">
+        <div class="d-flex flex-wrap gap-2 justify-content-between align-items-start">
+          <div class="flex-grow-1">
+            <div>
+              <strong><i class="bi bi-calendar-check"></i> ${formatDateBE(a.AppointmentDate)}</strong>
+              <span class="badge bg-light text-dark border">${escapeHtml(typeName)}</span>
+              <span class="badge ${stat.cls}">${stat.label}</span>
+            </div>
+            ${a.ActualVisitDate ? '<div class="small text-success"><i class="bi bi-check2-circle"></i> มาตรวจวันที่ ' + formatDateBE(a.ActualVisitDate) + '</div>' : ''}
+            ${a.Notes ? '<div class="small mt-1"><i class="bi bi-sticky"></i> ' + escapeHtml(a.Notes) + '</div>' : ''}
+          </div>
+          <div class="btn-group btn-group-sm">
+            ${a.Status === 'scheduled' ? `
+              <button class="btn btn-outline-success" onclick="doMarkAppt('${escapeJs(a.AppointmentID)}', 'completed')"><i class="bi bi-check2"></i> มาตามนัด</button>
+              <button class="btn btn-outline-danger" onclick="doMarkAppt('${escapeJs(a.AppointmentID)}', 'missed')"><i class="bi bi-x"></i> ขาดนัด</button>
+              <button class="btn btn-outline-secondary" onclick="doMarkAppt('${escapeJs(a.AppointmentID)}', 'cancelled')"><i class="bi bi-slash-circle"></i></button>
+            ` : ''}
+            <button class="btn btn-outline-primary" onclick="openApptModal('${escapeJs(a.AppointmentID)}')"><i class="bi bi-pencil"></i></button>
+          </div>
+        </div>
+      </div>`;
+  };
+
+  let html = '';
+  if (upcoming.length > 0) {
+    html += '<h6 class="mt-2 mb-2 text-info"><i class="bi bi-calendar-event"></i> นัดที่กำลังจะถึง (' + upcoming.length + ')</h6>';
+    html += upcoming.map(renderItem).join('');
+  }
+  if (past.length > 0) {
+    html += '<h6 class="mt-3 mb-2 text-muted"><i class="bi bi-clock-history"></i> ประวัตินัด (' + past.length + ')</h6>';
+    html += past.map(renderItem).join('');
+  }
+  wrap.innerHTML = html;
+}
+
+function openApptModal(apptId) {
+  document.getElementById('appt_AppointmentID').value = apptId || '';
+  document.getElementById('appt_AppointmentDate').value = '';
+  document.getElementById('appt_AppointmentType').value = 'regular';
+  document.getElementById('appt_Notes').value = '';
+  document.getElementById('apptModalTitle').innerText = apptId ? 'แก้ไขนัด' : 'เพิ่มนัดหมาย';
+
+  if (apptId) {
+    jsonp({ action: 'getAppointments', token: currentUser.token, patientId: currentPatient.PatientID })
+      .then(r => {
+        if (!r.success) return;
+        const a = (r.data || []).find(x => x.AppointmentID === apptId);
+        if (!a) return;
+        document.getElementById('appt_AppointmentDate').value = (a.AppointmentDate || '').substring(0, 10);
+        document.getElementById('appt_AppointmentType').value = a.AppointmentType || 'regular';
+        document.getElementById('appt_Notes').value = a.Notes || '';
+      });
+  } else {
+    // default = 3 เดือนข้างหน้า
+    const d = new Date();
+    d.setMonth(d.getMonth() + 3);
+    document.getElementById('appt_AppointmentDate').value = d.toISOString().split('T')[0];
+  }
+  new bootstrap.Modal(document.getElementById('apptModal')).show();
+}
+
+async function doSaveAppointment() {
+  const data = {
+    AppointmentID: document.getElementById('appt_AppointmentID').value || undefined,
+    PatientID: currentPatient.PatientID,
+    AppointmentDate: document.getElementById('appt_AppointmentDate').value,
+    AppointmentType: document.getElementById('appt_AppointmentType').value,
+    Notes: document.getElementById('appt_Notes').value.trim()
+  };
+  if (!data.AppointmentDate) { showError('กรุณาเลือกวันที่นัด'); return; }
+  showLoading('กำลังบันทึก...');
+  try {
+    const r = await apiCall({ action: 'saveAppointment', token: currentUser.token, data: JSON.stringify(data) });
+    Swal.close();
+    if (!r.success) { showError(r.message); return; }
+    bootstrap.Modal.getInstance(document.getElementById('apptModal')).hide();
+    showSuccess(r.message);
+    loadAppointments();
+  } catch (e) { Swal.close(); showError(e.toString()); }
+}
+
+async function doMarkAppt(apptId, status) {
+  const labelMap = { completed: 'มาตามนัด', missed: 'ขาดนัด', cancelled: 'ยกเลิกนัด' };
+  const ok = await Swal.fire({
+    icon: 'question', title: labelMap[status] + '?',
+    showCancelButton: true, confirmButtonText: labelMap[status], cancelButtonText: 'ยกเลิก',
+    confirmButtonColor: status === 'missed' ? '#dc3545' : '#1a8754'
+  });
+  if (!ok.isConfirmed) return;
+  try {
+    const r = await jsonp({ action: 'markAppointmentStatus', token: currentUser.token,
+      appointmentId: apptId, status: status });
+    if (!r.success) { showError(r.message); return; }
+    showSuccess('บันทึกสถานะเรียบร้อย');
+    loadAppointments();
+  } catch (e) { showError(e.toString()); }
+}
+
+/* ===================================================================
    PATIENT TREND CHARTS — กราฟแนวโน้มต่อผู้ป่วย (HbA1c, FBS, BP, weight, lipid)
    =================================================================== */
 let _trendHistory = null;            // cache visit/lab history ของผู้ป่วยปัจจุบัน
@@ -4914,7 +5369,9 @@ function renderKPIReport(data) {
     { title: 'อัตราตรวจเท้า/ปี', value: o.pctFootExam + '%', sub: o.footExam + '/' + o.total + ' ราย', cls: _kpiPctClass(o.pctFootExam, 60), target: 60 },
     { title: 'อัตราตรวจตา/ปี', value: o.pctEyeExam + '%', sub: o.eyeExam + '/' + o.total + ' ราย', cls: _kpiPctClass(o.pctEyeExam, 60), target: 60 },
     { title: 'อัตราตรวจฟัน/ปี', value: o.pctDentalExam + '%', sub: o.dentalExam + '/' + o.total + ' ราย', cls: _kpiPctClass(o.pctDentalExam, 50), target: 50 },
-    { title: 'อัตราตรวจ MicroAlbumin/ปี', value: o.pctMicroAlbumin + '%', sub: o.microAlbumin + '/' + o.total + ' ราย', cls: _kpiPctClass(o.pctMicroAlbumin, 60), target: 60 }
+    { title: 'อัตราตรวจ MicroAlbumin/ปี', value: o.pctMicroAlbumin + '%', sub: o.microAlbumin + '/' + o.total + ' ราย', cls: _kpiPctClass(o.pctMicroAlbumin, 60), target: 60 },
+    { title: 'อัตรามาตรงนัด', value: (o.pctApptAdherence || 0) + '%', sub: (o.apptCompleted || 0) + ' มา / ' + (o.apptMissed || 0) + ' ขาด', cls: _kpiPctClass(o.pctApptAdherence || 0, 80), target: 80 },
+    { title: 'Treatment Intensification', value: (o.pctIntensification || 0) + '%', sub: (o.intensifyDone || 0) + '/' + (o.intensifyEligible || 0) + ' ราย (HbA1c≥7)', cls: _kpiPctClass(o.pctIntensification || 0, 50), target: 50 }
   ];
   document.getElementById('kpiOverallCards').innerHTML = cards.map(c => `
     <div class="col-6 col-md-3">
