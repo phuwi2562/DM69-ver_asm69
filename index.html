@@ -619,6 +619,24 @@ body {
           </div>
         </div>
       </div>
+
+      <!-- Upcoming Appointments widget — viewer ไม่เห็น -->
+      <div id="upcomingApptsCard" class="card border-0 shadow-sm mt-3" style="display:none;">
+        <div class="card-body">
+          <div class="d-flex justify-content-between align-items-center mb-2 flex-wrap gap-2">
+            <h6 class="mb-0 text-success"><i class="bi bi-calendar-event"></i> นัดที่กำลังจะถึง <span id="upcomingApptsBadge" class="badge bg-success"></span></h6>
+            <div class="btn-group btn-group-sm" role="group">
+              <input type="radio" class="btn-check" name="apptRange" id="apptRange1" value="1" onchange="loadUpcomingApptsWidget()">
+              <label class="btn btn-outline-success" for="apptRange1">วันนี้</label>
+              <input type="radio" class="btn-check" name="apptRange" id="apptRange7" value="7" checked onchange="loadUpcomingApptsWidget()">
+              <label class="btn btn-outline-success" for="apptRange7">7 วัน</label>
+              <input type="radio" class="btn-check" name="apptRange" id="apptRange30" value="30" onchange="loadUpcomingApptsWidget()">
+              <label class="btn btn-outline-success" for="apptRange30">30 วัน</label>
+            </div>
+          </div>
+          <div id="upcomingApptsList"><div class="text-center text-muted py-3">— กำลังโหลด —</div></div>
+        </div>
+      </div>
     </div>
 
     <!-- ===================== DM REMISSION DASHBOARD ===================== -->
@@ -2322,6 +2340,11 @@ function initVillageDropdowns() {
 
 /* ---------- Dashboard ---------- */
 async function loadDashboard() {
+  // โชว์/ซ่อน widget นัด ตาม role (viewer ไม่เห็นข้อมูลรายคน)
+  const apptCard = document.getElementById('upcomingApptsCard');
+  if (apptCard) apptCard.style.display = (currentUser && currentUser.role !== 'viewer') ? '' : 'none';
+  if (currentUser && currentUser.role !== 'viewer') loadUpcomingApptsWidget();
+
   try {
     const r = await jsonp({ action: 'getDashboardStats', token: currentUser.token });
     if (!r.success) { showError(r.message); return; }
@@ -4380,6 +4403,101 @@ async function doMarkAppt(apptId, status) {
     if (!r.success) { showError(r.message); return; }
     showSuccess('บันทึกสถานะเรียบร้อย');
     loadAppointments();
+  } catch (e) { showError(e.toString()); }
+}
+
+/* ===================================================================
+   DASHBOARD WIDGET — นัดที่กำลังจะถึง (วันนี้ / 7 วัน / 30 วัน)
+   =================================================================== */
+async function loadUpcomingApptsWidget() {
+  const wrap = document.getElementById('upcomingApptsList');
+  const badge = document.getElementById('upcomingApptsBadge');
+  if (!wrap) return;
+  if (!currentUser || currentUser.role === 'viewer') {
+    wrap.innerHTML = ''; if (badge) badge.textContent = '';
+    return;
+  }
+  const days = parseInt((document.querySelector('input[name="apptRange"]:checked') || {}).value || '7', 10);
+  wrap.innerHTML = '<div class="text-center text-muted py-3"><i class="bi bi-hourglass-split"></i> กำลังโหลด...</div>';
+  try {
+    const r = await jsonp({ action: 'getUpcomingAppointments', token: currentUser.token, days: days });
+    if (!r.success) { wrap.innerHTML = '<div class="alert alert-danger">' + escapeHtml(r.message) + '</div>'; return; }
+    renderUpcomingApptsWidget(r.data || [], days);
+  } catch (e) { wrap.innerHTML = '<div class="alert alert-danger">' + escapeHtml(e.toString()) + '</div>'; }
+}
+
+function renderUpcomingApptsWidget(list, days) {
+  const wrap = document.getElementById('upcomingApptsList');
+  const badge = document.getElementById('upcomingApptsBadge');
+  if (badge) badge.textContent = list.length + ' นัด';
+
+  if (!list || list.length === 0) {
+    const periodLabel = days === 1 ? 'วันนี้' : (days + ' วันข้างหน้า');
+    wrap.innerHTML = '<div class="alert alert-success small mb-0"><i class="bi bi-check2-circle"></i> ไม่มีนัดใน' + periodLabel + '</div>';
+    return;
+  }
+
+  // Group by date
+  const byDate = {};
+  list.forEach(a => {
+    const d = a.appointmentDate;
+    if (!byDate[d]) byDate[d] = [];
+    byDate[d].push(a);
+  });
+  const sortedDates = Object.keys(byDate).sort();
+  const todayStr = new Date().toISOString().substring(0, 10);
+
+  const typeLabel = {
+    regular: 'นัดติดตาม', lab: 'Lab', foot: 'ตรวจเท้า', eye: 'ตรวจตา',
+    dental: 'ตรวจฟัน', vaccine: 'วัคซีน', other: 'อื่น ๆ'
+  };
+
+  let html = '<div class="table-responsive"><table class="table table-sm table-hover mb-0"><tbody>';
+  sortedDates.forEach(date => {
+    const isToday = date === todayStr;
+    const items = byDate[date];
+    const beDate = formatDateBE(date);
+    html += `<tr style="background:${isToday ? '#fff3cd' : '#f8f9fa'};">
+      <td colspan="5"><strong>${isToday ? '<i class="bi bi-star-fill text-warning"></i> วันนี้ — ' : ''}${beDate}</strong>
+        <span class="badge bg-secondary ms-1">${items.length} นัด</span>
+      </td></tr>`;
+    items.forEach(a => {
+      html += `<tr>
+        <td style="cursor:pointer;width:35%;" onclick="viewPatient('${escapeJs(a.patientId)}')">
+          <strong>${escapeHtml(a.name.trim())}</strong>
+          <div class="small text-muted">HN: ${escapeHtml(a.hn || '-')}</div>
+        </td>
+        <td class="small"><i class="bi bi-house-door"></i> ${escapeHtml(a.villageName || '')}</td>
+        <td class="small">${a.phone ? '<i class="bi bi-telephone"></i> ' + escapeHtml(a.phone) : '<span class="text-muted">-</span>'}</td>
+        <td><span class="badge bg-light text-dark border">${escapeHtml(typeLabel[a.type] || a.type)}</span></td>
+        <td>
+          <div class="btn-group btn-group-sm">
+            <button class="btn btn-outline-success" title="มาตามนัด" onclick="doMarkApptInline('${escapeJs(a.appointmentId)}', 'completed')"><i class="bi bi-check2"></i></button>
+            <button class="btn btn-outline-danger" title="ขาดนัด" onclick="doMarkApptInline('${escapeJs(a.appointmentId)}', 'missed')"><i class="bi bi-x"></i></button>
+            <button class="btn btn-outline-primary" title="ดูผู้ป่วย" onclick="viewPatient('${escapeJs(a.patientId)}')"><i class="bi bi-eye"></i></button>
+          </div>
+        </td>
+      </tr>`;
+    });
+  });
+  html += '</tbody></table></div>';
+  wrap.innerHTML = html;
+}
+
+async function doMarkApptInline(apptId, status) {
+  const labelMap = { completed: 'มาตามนัด', missed: 'ขาดนัด' };
+  const ok = await Swal.fire({
+    icon: 'question', title: labelMap[status] + '?',
+    showCancelButton: true, confirmButtonText: labelMap[status], cancelButtonText: 'ยกเลิก',
+    confirmButtonColor: status === 'missed' ? '#dc3545' : '#1a8754'
+  });
+  if (!ok.isConfirmed) return;
+  try {
+    const r = await jsonp({ action: 'markAppointmentStatus', token: currentUser.token,
+      appointmentId: apptId, status: status });
+    if (!r.success) { showError(r.message); return; }
+    showSuccess('บันทึกสถานะเรียบร้อย');
+    loadUpcomingApptsWidget(); // refresh
   } catch (e) { showError(e.toString()); }
 }
 
