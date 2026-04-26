@@ -3804,6 +3804,7 @@ function renderAllUsers() {
     html += '<td class="small text-muted">' + (u.LastLoginAt || '-') + '</td>';
     html += '<td>';
     html += '<button class="btn btn-sm btn-outline-primary me-1" onclick="openEditUserModal(\'' + u.UserID + '\')" title="แก้ไข"><i class="bi bi-pencil"></i></button>';
+    html += '<button class="btn btn-sm btn-outline-secondary me-1" onclick="doUnlockLogin(\'' + escapeJs(u.Username) + '\')" title="ปลดล็อก login (กรณีถูก throttle)"><i class="bi bi-unlock"></i></button>';
     if (u.Active) {
       html += '<button class="btn btn-sm btn-outline-warning" onclick="toggleUserActive(\'' + u.UserID + '\', false, \'' + escapeJs(u.Username) + '\')" title="ระงับ"><i class="bi bi-pause-circle"></i></button>';
     } else {
@@ -3846,6 +3847,22 @@ async function rejectUser(userId, username) {
     if (res.success) { showSuccess(res.message); await loadUsersPage(); loadPendingBadge(); }
     else showError(res.message);
   } catch (e) { Swal.close(); showError(e.toString()); }
+}
+
+async function doUnlockLogin(username) {
+  const ok = await Swal.fire({
+    icon: 'question', title: 'ปลดล็อก login?',
+    html: 'ปลดล็อก <strong>' + escapeHtml(username) + '</strong> ที่อาจถูก throttle จาก login ผิดเกินกำหนด<br>'
+      + '<small class="text-muted">ใช้กรณีผู้ใช้แจ้งว่าใส่รหัสผิดหลายครั้ง แล้วเข้าระบบไม่ได้</small>',
+    showCancelButton: true, confirmButtonText: 'ปลดล็อก', cancelButtonText: 'ยกเลิก',
+    confirmButtonColor: '#1a8754'
+  });
+  if (!ok.isConfirmed) return;
+  try {
+    const r = await jsonp({ action: 'unlockUserLogin', token: currentUser.token, username: username });
+    if (!r.success) { showError(r.message); return; }
+    showSuccess(r.message);
+  } catch (e) { showError(e.toString()); }
 }
 
 async function toggleUserActive(userId, active, username) {
