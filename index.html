@@ -366,6 +366,19 @@ body {
   margin-bottom: .75rem;
 }
 
+/* Drill-down cell ในตาราง Stages of Change */
+.stage-cell {
+  cursor: pointer;
+  font-weight: 600;
+  text-decoration: underline dotted #1a8754;
+  text-underline-offset: 3px;
+  transition: background-color .15s, transform .12s;
+}
+.stage-cell:hover {
+  background-color: #1a875422 !important;
+  transform: scale(1.05);
+}
+
 /* การ์ดผู้ป่วยที่ซ้ำ (admin เห็นเท่านั้น) */
 .patient-card-duplicate {
   border-left: 4px solid #dc3545 !important;
@@ -1849,6 +1862,27 @@ body {
   </div>
 </div>
 
+<!-- ===================== STAGE PATIENTS DRILL-DOWN MODAL ===================== -->
+<div class="modal fade" id="stagePatientsModal" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header" style="background:linear-gradient(135deg,#1a8754 0%,#0d6efd 100%);color:#fff;">
+        <h5 class="modal-title"><i class="bi bi-compass me-2"></i><span id="stagePatientsTitle">ผู้ป่วยใน Stage</span></h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div id="stagePatientsSummary" class="alert alert-info small mb-3"></div>
+        <div id="stagePatientsList">
+          <div class="text-center text-muted py-4"><i class="bi bi-hourglass-split"></i> กำลังโหลด...</div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">ปิด</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- ===================== MEDICATION MODAL ===================== -->
 <div class="modal fade" id="medModal" tabindex="-1">
   <div class="modal-dialog">
@@ -2606,30 +2640,37 @@ async function loadStageDashboard() {
       }
     });
 
-    // Stage table
+    // Stage table — แต่ละจำนวนคลิกได้เพื่อเปิด drill-down รายชื่อผู้ป่วย
+    const cell = (count, stage, villageId, bgColor) => {
+      if (count === 0) {
+        return `<td class="text-center" ${bgColor ? 'style="background:' + bgColor + ';"' : ''}><span class="text-muted">0</span></td>`;
+      }
+      return `<td class="text-center stage-cell" ${bgColor ? 'style="background:' + bgColor + ';"' : ''}
+        onclick="openStagePatientsModal('${stage}', '${villageId}')">${count}</td>`;
+    };
     let stHtml = '';
     sortedV.forEach(v => {
       stHtml += `<tr>
-        <td>${v.villageName}</td>
-        <td class="text-center">${v.totalPatients}</td>
-        <td class="text-center">${v.totalAssessed}</td>
-        <td class="text-center" style="background:#adb5bd30;">${v['1']}</td>
-        <td class="text-center" style="background:#ffc10730;">${v['2']}</td>
-        <td class="text-center" style="background:#17a2b830;">${v['3']}</td>
-        <td class="text-center" style="background:#0d6efd30;">${v['4']}</td>
-        <td class="text-center" style="background:#28a74530;">${v['5']}</td>
+        <td>${escapeHtml(v.villageName)}</td>
+        ${cell(v.totalPatients, 'all', v.villageId)}
+        ${cell(v.totalAssessed, 'assessed', v.villageId)}
+        ${cell(v['1'], '1', v.villageId, '#adb5bd30')}
+        ${cell(v['2'], '2', v.villageId, '#ffc10730')}
+        ${cell(v['3'], '3', v.villageId, '#17a2b830')}
+        ${cell(v['4'], '4', v.villageId, '#0d6efd30')}
+        ${cell(v['5'], '5', v.villageId, '#28a74530')}
         <td class="text-center"><strong>${v.avgReadiness || '-'}</strong>/10</td>
       </tr>`;
     });
     stHtml += `<tr class="table-success fw-bold">
       <td>รวมทั้งตำบล</td>
-      <td class="text-center">${overall['1']+overall['2']+overall['3']+overall['4']+overall['5']+overall.unassessed}</td>
-      <td class="text-center">${overall.totalAssessed}</td>
-      <td class="text-center">${overall['1']}</td>
-      <td class="text-center">${overall['2']}</td>
-      <td class="text-center">${overall['3']}</td>
-      <td class="text-center">${overall['4']}</td>
-      <td class="text-center">${overall['5']}</td>
+      ${cell(overall['1']+overall['2']+overall['3']+overall['4']+overall['5']+overall.unassessed, 'all', 'all')}
+      ${cell(overall.totalAssessed, 'assessed', 'all')}
+      ${cell(overall['1'], '1', 'all')}
+      ${cell(overall['2'], '2', 'all')}
+      ${cell(overall['3'], '3', 'all')}
+      ${cell(overall['4'], '4', 'all')}
+      ${cell(overall['5'], '5', 'all')}
       <td class="text-center">${overall.avgReadiness}/10</td>
     </tr>`;
     document.getElementById('rmStageTable').innerHTML = stHtml;
@@ -4404,6 +4445,109 @@ async function doMarkAppt(apptId, status) {
     showSuccess('บันทึกสถานะเรียบร้อย');
     loadAppointments();
   } catch (e) { showError(e.toString()); }
+}
+
+/* ===================================================================
+   STAGE OF CHANGE — Drill-down รายชื่อผู้ป่วยตาม stage / หมู่บ้าน
+   =================================================================== */
+const _STAGE_LABELS = {
+  '1': '1. เมินเฉย (Precontemplation)',
+  '2': '2. ตระหนัก (Contemplation)',
+  '3': '3. เตรียมการ (Preparation)',
+  '4': '4. ลงมือทำ (Action)',
+  '5': '5. คงสภาพ (Maintenance)',
+  'unassessed': 'ยังไม่ประเมิน',
+  'assessed':   'ประเมินแล้ว (ทุก stage)',
+  'all':        'ทั้งหมด'
+};
+const _STAGE_COLORS = {
+  '1': '#adb5bd', '2': '#ffc107', '3': '#17a2b8', '4': '#0d6efd', '5': '#28a745',
+  'unassessed': '#6c757d', 'assessed': '#0d6efd', 'all': '#1a8754'
+};
+
+async function openStagePatientsModal(stage, village) {
+  const modalEl = document.getElementById('stagePatientsModal');
+  const modal = new bootstrap.Modal(modalEl);
+  modal.show();
+
+  // Title + summary
+  const stageLabel = _STAGE_LABELS[stage] || stage;
+  const villageLabel = (!village || village === 'all' || village === '0')
+    ? 'ทั้งตำบล'
+    : (typeof VILLAGES !== 'undefined' && VILLAGES[village]) || ('หมู่ ' + village);
+  document.getElementById('stagePatientsTitle').textContent = 'Stage: ' + stageLabel;
+
+  const summary = document.getElementById('stagePatientsSummary');
+  summary.innerHTML = '<i class="bi bi-info-circle"></i> กำลังโหลดข้อมูล...';
+
+  const listEl = document.getElementById('stagePatientsList');
+  listEl.innerHTML = '<div class="text-center text-muted py-4"><i class="bi bi-hourglass-split"></i> กำลังโหลด...</div>';
+
+  try {
+    const r = await jsonp({
+      action: 'getStagePatients', token: currentUser.token,
+      stage: stage, village: village || 'all'
+    });
+    if (!r.success) {
+      summary.innerHTML = '<i class="bi bi-exclamation-triangle"></i> ' + escapeHtml(r.message);
+      listEl.innerHTML = '';
+      return;
+    }
+    const d = r.data;
+    const color = _STAGE_COLORS[stage] || '#1a8754';
+    summary.style.borderLeft = '5px solid ' + color;
+    summary.innerHTML = `
+      <strong>${escapeHtml(d.villageName)}</strong> · ระดับ <strong>${escapeHtml(stageLabel)}</strong>
+      — รวม <span class="badge" style="background:${color};color:#fff;">${d.count} ราย</span>`;
+
+    if (d.count === 0) {
+      listEl.innerHTML = '<div class="alert alert-light border text-center py-4">'
+        + '<i class="bi bi-info-circle fs-3 d-block mb-2"></i> ไม่มีผู้ป่วยในกลุ่มนี้</div>';
+      return;
+    }
+
+    // ตาราง
+    const rows = d.patients.map((p, i) => {
+      const fullName = (p.prefix || '') + (p.firstName || '') + ' ' + (p.lastName || '');
+      const stageDisp = p.latestStage
+        ? '<span class="badge" style="background:' + (_STAGE_COLORS[p.latestStage] || '#6c757d') + ';color:#fff;">' + p.latestStage + '. ' + escapeHtml(p.latestStageLabel || '') + '</span>'
+        : '<span class="badge bg-secondary">ยังไม่ประเมิน</span>';
+      return `
+        <tr style="cursor:pointer;" onclick="bootstrap.Modal.getInstance(document.getElementById('stagePatientsModal')).hide(); viewPatient('${escapeJs(p.patientId)}');">
+          <td>${i + 1}</td>
+          <td>${escapeHtml(p.hn || '-')}</td>
+          <td><strong>${escapeHtml(fullName.trim())}</strong>
+            <div class="small text-muted"><i class="bi bi-house-door"></i> ${escapeHtml(p.villageName || '')}
+              ${p.phone ? '· <i class="bi bi-telephone"></i> ' + escapeHtml(p.phone) : ''}
+            </div>
+          </td>
+          <td>${stageDisp}</td>
+          <td class="text-center">${p.readiness !== null ? p.readiness.toFixed(1) : '-'}</td>
+          <td class="small text-muted">${formatDateBE(p.latestDate) || '-'}</td>
+        </tr>`;
+    }).join('');
+
+    listEl.innerHTML = `
+      <div class="table-responsive">
+        <table class="table table-sm table-hover align-middle">
+          <thead class="table-light">
+            <tr>
+              <th style="width:40px;">#</th>
+              <th>HN</th>
+              <th>ชื่อ-สกุล</th>
+              <th>Stage ล่าสุด</th>
+              <th class="text-center">Readiness</th>
+              <th>วันที่ประเมิน</th>
+            </tr>
+          </thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>
+      <div class="small text-muted mt-2"><i class="bi bi-cursor"></i> คลิกแถวผู้ป่วยเพื่อเปิดหน้ารายละเอียด</div>`;
+  } catch (e) {
+    summary.innerHTML = '<i class="bi bi-exclamation-triangle"></i> ' + escapeHtml(e.toString());
+    listEl.innerHTML = '';
+  }
 }
 
 /* ===================================================================
