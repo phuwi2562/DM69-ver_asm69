@@ -5653,6 +5653,62 @@ function renderBooklet(data) {
       <td class="text-center">${l.UrineAlbumin || '-'}</td>
     </tr>`).join('') || '<tr><td colspan="7" class="text-center text-muted">— ยังไม่มีบันทึก —</td></tr>';
 
+  // ===== ยา (active) แยกตามหมวด =====
+  const medCatLabel = { diabetes: 'ยาเบาหวาน', ht: 'ยาความดัน', dlp: 'ยาไขมัน', other: 'ยาอื่น ๆ' };
+  const medCatOrder = ['diabetes', 'ht', 'dlp', 'other'];
+  const medsByCategory = { diabetes: [], ht: [], dlp: [], other: [] };
+  (data.medications || []).forEach(m => {
+    const cat = m.DrugCategory || 'other';
+    (medsByCategory[cat] || medsByCategory.other).push(m);
+  });
+  const medRows = [];
+  medCatOrder.forEach(cat => {
+    const items = medsByCategory[cat] || [];
+    if (items.length === 0) return;
+    medRows.push(`<tr style="background:#e8f5ee;"><td colspan="4"><strong>${medCatLabel[cat]}</strong> <span class="text-muted small">(${items.length} รายการ)</span></td></tr>`);
+    items.forEach(m => {
+      medRows.push(`
+        <tr>
+          <td><strong>${escapeHtml(m.DrugName || '-')}</strong></td>
+          <td class="text-center">${escapeHtml(m.Dose || '-')}</td>
+          <td>${escapeHtml(m.Frequency || '-')}</td>
+          <td class="small text-muted">${formatDateBE(m.StartDate)}${m.Notes ? '<br>' + escapeHtml(m.Notes) : ''}</td>
+        </tr>`);
+    });
+  });
+  const medsHtml = medRows.length > 0
+    ? medRows.join('')
+    : '<tr><td colspan="4" class="text-center text-muted">— ยังไม่ได้บันทึกยาที่ใช้อยู่ —</td></tr>';
+
+  // ===== นัดหมาย =====
+  const apptTypeLabel = {
+    regular: 'นัดติดตาม', lab: 'เจาะเลือด/Lab', foot: 'ตรวจเท้า',
+    eye: 'ตรวจตา', dental: 'ตรวจฟัน', vaccine: 'รับวัคซีน', other: 'อื่น ๆ'
+  };
+  const upcomingAppts = data.upcomingAppointments || [];
+  const recentAppts = data.recentAppointments || [];
+
+  const upcomingApptRows = upcomingAppts.length > 0
+    ? upcomingAppts.map(a => `
+        <tr>
+          <td><strong>${formatDateBE(a.AppointmentDate)}</strong></td>
+          <td>${escapeHtml(apptTypeLabel[a.AppointmentType] || a.AppointmentType || '-')}</td>
+          <td class="small">${escapeHtml(a.Notes || '')}</td>
+        </tr>`).join('')
+    : '<tr><td colspan="3" class="text-center text-muted">— ยังไม่มีนัดล่วงหน้า —</td></tr>';
+
+  const recentApptStatusLabel = {
+    completed: '✓ มาตามนัด', missed: '✗ ขาดนัด', cancelled: '⊘ ยกเลิก', scheduled: 'รอเข้ารับ'
+  };
+  const recentApptRows = recentAppts.length > 0
+    ? recentAppts.map(a => `
+        <tr>
+          <td>${formatDateBE(a.AppointmentDate)}</td>
+          <td>${escapeHtml(apptTypeLabel[a.AppointmentType] || a.AppointmentType || '-')}</td>
+          <td>${escapeHtml(recentApptStatusLabel[String(a.Status || '').toLowerCase()] || a.Status || '-')}</td>
+        </tr>`).join('')
+    : '';
+
   // คำแนะนำสุขภาพอัตโนมัติตามค่าล่าสุด
   const tips = [];
   const lhba = parseFloat(ll.HbA1c);
@@ -5753,6 +5809,30 @@ function renderBooklet(data) {
     </div>
 
     <div class="booklet-section">
+      <h6>ยาที่ใช้อยู่ปัจจุบัน</h6>
+      <table class="booklet-table">
+        <thead><tr><th>ชื่อยา</th><th>ขนาด</th><th>วิธีใช้</th><th>เริ่ม / หมายเหตุ</th></tr></thead>
+        <tbody>${medsHtml}</tbody>
+      </table>
+      <div class="small text-muted mt-1"><i>* ผู้ป่วยควรนำสมุดเล่มนี้พร้อมยามาทุกครั้งที่มาตรวจ</i></div>
+    </div>
+
+    <div class="booklet-section">
+      <h6>นัดครั้งถัดไป</h6>
+      <table class="booklet-table">
+        <thead><tr><th style="width:30%">วันที่นัด</th><th style="width:25%">ประเภท</th><th>หมายเหตุ</th></tr></thead>
+        <tbody>${upcomingApptRows}</tbody>
+      </table>
+      ${recentApptRows ? `
+        <div class="small mt-2 mb-1 text-muted">ประวัตินัดที่ผ่านมา (6 เดือนล่าสุด):</div>
+        <table class="booklet-table">
+          <thead><tr><th style="width:30%">วันที่</th><th style="width:25%">ประเภท</th><th>สถานะ</th></tr></thead>
+          <tbody>${recentApptRows}</tbody>
+        </table>
+      ` : ''}
+    </div>
+
+    <div class="booklet-section">
       <h6>คำแนะนำสำหรับผู้ป่วย</h6>
       <div class="booklet-notes">
         ${tips.map(t => '<div>' + escapeHtml(t) + '</div>').join('')}
@@ -5760,7 +5840,7 @@ function renderBooklet(data) {
     </div>
 
     <div class="booklet-section">
-      <h6>บันทึกของผู้ป่วย / นัดครั้งถัดไป</h6>
+      <h6>บันทึกเพิ่มเติม / สิ่งที่ต้องสอบถามครั้งถัดไป</h6>
       <div class="booklet-notes" style="min-height: 90px;"></div>
     </div>
 
