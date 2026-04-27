@@ -633,6 +633,26 @@ body {
         </div>
       </div>
 
+      <!-- หน่วยบริการที่รับยา/รักษา — chart + table -->
+      <div class="row g-3 mt-2">
+        <div class="col-12 col-lg-6">
+          <div class="card border-0 shadow-sm">
+            <div class="card-body">
+              <h6 class="text-success"><i class="bi bi-hospital"></i> สัดส่วนหน่วยบริการที่รับยา/รักษา</h6>
+              <canvas id="serviceUnitChart" height="180"></canvas>
+            </div>
+          </div>
+        </div>
+        <div class="col-12 col-lg-6">
+          <div class="card border-0 shadow-sm">
+            <div class="card-body">
+              <h6 class="text-success"><i class="bi bi-table"></i> รายการหน่วยบริการ</h6>
+              <div id="serviceUnitList" class="small"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <!-- Upcoming Appointments widget — viewer ไม่เห็น -->
       <div id="upcomingApptsCard" class="card border-0 shadow-sm mt-3" style="display:none;">
         <div class="card-body">
@@ -1085,6 +1105,22 @@ body {
                 <div class="form-check form-check-inline"><input class="form-check-input" type="checkbox" id="pf_HT"><label class="form-check-label" for="pf_HT">ความดันโลหิตสูง (HT)</label></div>
                 <div class="form-check form-check-inline"><input class="form-check-input" type="checkbox" id="pf_DLP"><label class="form-check-label" for="pf_DLP">ไขมันในเลือดสูง (DLP)</label></div>
                 <div class="form-check form-check-inline"><input class="form-check-input" type="checkbox" id="pf_CKD"><label class="form-check-label" for="pf_CKD">โรคไตเรื้อรัง (CKD)</label></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="form-section-title"><i class="bi bi-hospital"></i> หน่วยบริการที่รับยา/รักษาครั้งสุดท้าย</div>
+          <div class="row g-2">
+            <div class="col-md-12">
+              <div class="row g-2" id="pf_ServiceUnitGroup">
+                <div class="col-md-4"><div class="form-check"><input class="form-check-input" type="radio" name="pf_ServiceUnit" onchange="onServiceUnitChange()" id="pf_su_kham" value="รพ.สต.บ้านคำใหญ่"><label class="form-check-label" for="pf_su_kham">รพ.สต.บ้านคำใหญ่</label></div></div>
+                <div class="col-md-4"><div class="form-check"><input class="form-check-input" type="radio" name="pf_ServiceUnit" onchange="onServiceUnitChange()" id="pf_su_huai" value="โรงพยาบาลห้วยเม็ก"><label class="form-check-label" for="pf_su_huai">โรงพยาบาลห้วยเม็ก</label></div></div>
+                <div class="col-md-4"><div class="form-check"><input class="form-check-input" type="radio" name="pf_ServiceUnit" onchange="onServiceUnitChange()" id="pf_su_kranuan" value="โรงพยาบาลกระนวน"><label class="form-check-label" for="pf_su_kranuan">โรงพยาบาลกระนวน</label></div></div>
+                <div class="col-md-4"><div class="form-check"><input class="form-check-input" type="radio" name="pf_ServiceUnit" onchange="onServiceUnitChange()" id="pf_su_kalasin" value="โรงพยาบาลกาฬสินธุ์"><label class="form-check-label" for="pf_su_kalasin">โรงพยาบาลกาฬสินธุ์</label></div></div>
+                <div class="col-md-4"><div class="form-check"><input class="form-check-input" type="radio" name="pf_ServiceUnit" onchange="onServiceUnitChange()" id="pf_su_yang" value="โรงพยาบาลยางตลาด"><label class="form-check-label" for="pf_su_yang">โรงพยาบาลยางตลาด</label></div></div>
+                <div class="col-md-4"><div class="form-check"><input class="form-check-input" type="radio" name="pf_ServiceUnit" onchange="onServiceUnitChange()" id="pf_su_stop" value="หยุดยาเอง" onchange="onServiceUnitChange()"><label class="form-check-label text-danger" for="pf_su_stop"><i class="bi bi-exclamation-triangle"></i> หยุดยาเอง</label></div></div>
+                <div class="col-md-4"><div class="form-check"><input class="form-check-input" type="radio" name="pf_ServiceUnit" onchange="onServiceUnitChange()" id="pf_su_other" value="อื่นๆ" onchange="onServiceUnitChange()"><label class="form-check-label" for="pf_su_other">อื่นๆ ระบุ</label></div></div>
+                <div class="col-md-8"><input type="text" class="form-control" id="pf_ServiceUnitOther" placeholder="ระบุชื่อหน่วยบริการ..." disabled></div>
               </div>
             </div>
           </div>
@@ -2073,6 +2109,7 @@ const APP_URL = 'https://script.google.com/macros/s/AKfycbx6lzkihBffrmxZ6sJwySC9
 let currentUser = null;
 let currentPatient = null;
 let villageChartInstance = null;
+let serviceUnitChartInstance = null;
 
 const VILLAGES = {
   '1': 'หมู่ 1 บ้านหัวสนาม',
@@ -2407,7 +2444,90 @@ async function loadDashboard() {
       data: { labels: labels, datasets: [{ label: 'จำนวนผู้ป่วย', data: data, backgroundColor: 'rgba(26,135,84,0.7)', borderColor: 'rgba(13,110,253,1)', borderWidth: 1 }] },
       options: { responsive: true, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } } }
     });
+
+    // Service Unit chart (donut) — แสดงเฉพาะหน่วยที่มีผู้ป่วย
+    renderServiceUnitChart(s);
   } catch (e) { showError(e.toString()); }
+}
+
+/**
+ * Render donut chart + ตารางสัดส่วนหน่วยบริการที่รับยา/รักษา
+ */
+function renderServiceUnitChart(stats) {
+  const byUnit = stats.byServiceUnit || {};
+  const order = stats.serviceUnits || [
+    'รพ.สต.บ้านคำใหญ่', 'โรงพยาบาลห้วยเม็ก', 'โรงพยาบาลกระนวน',
+    'โรงพยาบาลกาฬสินธุ์', 'โรงพยาบาลยางตลาด', 'อื่นๆ', 'หยุดยาเอง'
+  ];
+  const allUnits = order.concat(['ไม่ระบุ']);
+  // เก็บเฉพาะที่มีจำนวน > 0
+  const filtered = allUnits.filter(u => (byUnit[u] || 0) > 0);
+  const total = filtered.reduce((sum, u) => sum + (byUnit[u] || 0), 0);
+
+  const colorMap = {
+    'รพ.สต.บ้านคำใหญ่':    '#1a8754',
+    'โรงพยาบาลห้วยเม็ก':   '#0d6efd',
+    'โรงพยาบาลกระนวน':     '#17a2b8',
+    'โรงพยาบาลกาฬสินธุ์':  '#6f42c1',
+    'โรงพยาบาลยางตลาด':    '#fd7e14',
+    'อื่นๆ':              '#6c757d',
+    'หยุดยาเอง':          '#dc3545',
+    'ไม่ระบุ':             '#adb5bd'
+  };
+
+  const labels = filtered;
+  const dataArr = filtered.map(u => byUnit[u] || 0);
+  const colors = filtered.map(u => colorMap[u] || '#6c757d');
+
+  if (serviceUnitChartInstance) serviceUnitChartInstance.destroy();
+  const canvas = document.getElementById('serviceUnitChart');
+  if (canvas && total > 0) {
+    serviceUnitChartInstance = new Chart(canvas.getContext('2d'), {
+      type: 'doughnut',
+      data: { labels: labels, datasets: [{ data: dataArr, backgroundColor: colors, borderWidth: 2, borderColor: '#fff' }] },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: {
+          legend: { position: 'bottom', labels: { boxWidth: 14, padding: 8, font: { size: 11 } } },
+          tooltip: {
+            callbacks: {
+              label: (ctx) => {
+                const v = ctx.parsed; const pct = total > 0 ? ((v / total) * 100).toFixed(1) : 0;
+                return ctx.label + ': ' + v + ' ราย (' + pct + '%)';
+              }
+            }
+          }
+        }
+      }
+    });
+  } else if (canvas) {
+    // ไม่มีข้อมูล — clear canvas
+    canvas.getContext('2d').clearRect(0, 0, canvas.width, canvas.height);
+  }
+
+  // ตารางรายการ
+  const listEl = document.getElementById('serviceUnitList');
+  if (!listEl) return;
+  if (total === 0) {
+    listEl.innerHTML = '<div class="alert alert-light border text-center py-3">— ยังไม่มีข้อมูลหน่วยบริการ —</div>';
+    return;
+  }
+  listEl.innerHTML = '<table class="table table-sm mb-0"><tbody>'
+    + filtered.map(u => {
+        const n = byUnit[u] || 0;
+        const pct = total > 0 ? ((n / total) * 100).toFixed(1) : 0;
+        const isStop = u === 'หยุดยาเอง';
+        return '<tr>'
+          + '<td><span style="display:inline-block;width:14px;height:14px;border-radius:3px;background:' + (colorMap[u] || '#6c757d') + ';margin-right:6px;vertical-align:middle;"></span>'
+          + (isStop ? '<strong class="text-danger">⚠ ' + escapeHtml(u) + '</strong>' : escapeHtml(u))
+          + '</td>'
+          + '<td class="text-end"><strong>' + n + '</strong> ราย</td>'
+          + '<td class="text-end text-muted small">' + pct + '%</td>'
+          + '</tr>';
+      }).join('')
+    + '<tr style="border-top:2px solid #dee2e6;"><td><strong>รวม</strong></td>'
+    + '<td class="text-end"><strong>' + total + '</strong> ราย</td><td></td></tr>'
+    + '</tbody></table>';
 }
 
 /* ---------- DM Remission Dashboard ---------- */
@@ -2965,9 +3085,13 @@ function openNewPatientForm() {
 
 function resetPatientForm() {
   document.getElementById('patientFormTitle').innerText = 'เพิ่มผู้ป่วยใหม่';
-  ['pf_PatientID','pf_HN','pf_CID','pf_FirstName','pf_LastName','pf_BirthDate','pf_Age','pf_Phone','pf_Address','pf_DiagnosisDate','pf_PhotoURL']
+  ['pf_PatientID','pf_HN','pf_CID','pf_FirstName','pf_LastName','pf_BirthDate','pf_Age','pf_Phone','pf_Address','pf_DiagnosisDate','pf_PhotoURL','pf_ServiceUnitOther']
     .forEach(id => document.getElementById(id).value = '');
   ['pf_HT','pf_DLP','pf_CKD'].forEach(id => document.getElementById(id).checked = false);
+  // เคลียร์ radio service unit
+  document.querySelectorAll('input[name="pf_ServiceUnit"]').forEach(r => r.checked = false);
+  const otherInput = document.getElementById('pf_ServiceUnitOther');
+  if (otherInput) otherInput.disabled = true;
   document.getElementById('pf_PhotoPreview').style.display = 'none';
   document.getElementById('pf_Photo').value = '';
   // ปลดล็อกช่องหมู่บ้าน (กรณีถูก disable ไว้จากการแก้ไขของ อสม. ครั้งก่อน)
@@ -2976,6 +3100,22 @@ function resetPatientForm() {
   // ล้าง label พ.ศ.
   const beLabel = document.getElementById('pf_BirthDateBE');
   if (beLabel) beLabel.textContent = '';
+}
+
+/**
+ * เปิด/ปิดช่อง "อื่นๆ ระบุ" ตามค่า radio ที่เลือก
+ */
+function onServiceUnitChange() {
+  const sel = document.querySelector('input[name="pf_ServiceUnit"]:checked');
+  const otherInput = document.getElementById('pf_ServiceUnitOther');
+  if (!otherInput) return;
+  if (sel && sel.value === 'อื่นๆ') {
+    otherInput.disabled = false;
+    otherInput.focus();
+  } else {
+    otherInput.disabled = true;
+    if (sel && sel.value !== 'อื่นๆ') otherInput.value = '';
+  }
 }
 
 async function savePatient() {
@@ -3013,6 +3153,8 @@ async function savePatient() {
     HT_Comorbid: document.getElementById('pf_HT').checked,
     DLP_Comorbid: document.getElementById('pf_DLP').checked,
     CKD_Comorbid: document.getElementById('pf_CKD').checked,
+    LastServiceUnit: (document.querySelector('input[name="pf_ServiceUnit"]:checked') || {}).value || '',
+    LastServiceUnitOther: document.getElementById('pf_ServiceUnitOther').value.trim(),
     PhotoURL: photoURL
   };
 
@@ -3106,6 +3248,15 @@ function renderPatientDetail(p) {
     <div class="row mt-2 small text-muted">
       <div class="col-6 col-md-4"><i class="bi bi-calendar-heart"></i> วันเกิด: ${formatDateBE(p.BirthDate)}</div>
       <div class="col-6 col-md-4"><i class="bi bi-calendar-check"></i> วันที่วินิจฉัย: ${formatDateBE(p.DiagnosisDate)}</div>
+      <div class="col-12 col-md-12 mt-1">
+        <i class="bi bi-hospital"></i> หน่วยบริการที่รับยา/รักษา:
+        ${p.LastServiceUnit
+          ? '<strong class="' + (p.LastServiceUnit === 'หยุดยาเอง' ? 'text-danger' : 'text-success') + '">'
+            + escapeHtml(p.LastServiceUnit)
+            + (p.LastServiceUnit === 'อื่นๆ' && p.LastServiceUnitOther ? ' — ' + escapeHtml(p.LastServiceUnitOther) : '')
+            + '</strong>'
+          : '<span class="text-muted">— ไม่ระบุ —</span>'}
+      </div>
     </div>`;
 }
 
@@ -3146,6 +3297,15 @@ function editPatient() {
   document.getElementById('pf_DLP').checked = !!p.DLP_Comorbid;
   document.getElementById('pf_CKD').checked = !!p.CKD_Comorbid;
   document.getElementById('pf_PhotoURL').value = p.PhotoURL || '';
+
+  // เลือก radio ตามค่า LastServiceUnit
+  document.querySelectorAll('input[name="pf_ServiceUnit"]').forEach(r => r.checked = false);
+  if (p.LastServiceUnit) {
+    const radio = document.querySelector('input[name="pf_ServiceUnit"][value="' + p.LastServiceUnit.replace(/"/g, '\\"') + '"]');
+    if (radio) radio.checked = true;
+  }
+  document.getElementById('pf_ServiceUnitOther').value = p.LastServiceUnitOther || '';
+  onServiceUnitChange();
 
   // แสดงตัวอย่างรูปถ้ามี
   const previewEl = document.getElementById('pf_PhotoPreview');
