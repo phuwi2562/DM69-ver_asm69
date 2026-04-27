@@ -633,6 +633,18 @@ body {
         </div>
       </div>
 
+      <!-- ตารางจำนวนและร้อยละการรับบริการหน่วยบริการต่างๆ -->
+      <div class="row g-3 mt-2">
+        <div class="col-12">
+          <div class="card border-0 shadow-sm">
+            <div class="card-body">
+              <h6 class="text-success mb-3"><i class="bi bi-hospital"></i> จำนวนและร้อยละการรับบริการหน่วยบริการต่าง ๆ ของผู้ป่วยเบาหวาน</h6>
+              <div id="serviceUnitList"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
 
       <!-- Upcoming Appointments widget — viewer ไม่เห็น -->
       <div id="upcomingApptsCard" class="card border-0 shadow-sm mt-3" style="display:none;">
@@ -2424,7 +2436,67 @@ async function loadDashboard() {
       data: { labels: labels, datasets: [{ label: 'จำนวนผู้ป่วย', data: data, backgroundColor: 'rgba(26,135,84,0.7)', borderColor: 'rgba(13,110,253,1)', borderWidth: 1 }] },
       options: { responsive: true, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } } }
     });
+
+    renderServiceUnitTable(s);
   } catch (e) { showError(e.toString()); }
+}
+
+/**
+ * Render ตารางจำนวนและร้อยละการรับบริการหน่วยบริการต่าง ๆ
+ */
+function renderServiceUnitTable(stats) {
+  const byUnit = stats.byServiceUnit || {};
+  const order = stats.serviceUnits || [
+    'รพ.สต.บ้านคำใหญ่', 'โรงพยาบาลห้วยเม็ก', 'โรงพยาบาลกระนวน',
+    'โรงพยาบาลกาฬสินธุ์', 'โรงพยาบาลยางตลาด', 'อื่นๆ', 'หยุดยาเอง'
+  ];
+  const allUnits = order.concat(['ไม่ระบุ']);
+  const total = allUnits.reduce((sum, u) => sum + (byUnit[u] || 0), 0);
+
+  const listEl = document.getElementById('serviceUnitList');
+  if (!listEl) return;
+
+  if (total === 0) {
+    listEl.innerHTML = '<div class="alert alert-light border text-center py-3"><i class="bi bi-info-circle"></i> ยังไม่มีข้อมูลหน่วยบริการ</div>';
+    return;
+  }
+
+  let html = '<div class="table-responsive"><table class="table table-sm table-hover mb-0">'
+    + '<thead class="table-light"><tr>'
+    + '<th style="width:50px;">ลำดับ</th>'
+    + '<th>หน่วยบริการ</th>'
+    + '<th class="text-end" style="width:120px;">จำนวน (ราย)</th>'
+    + '<th class="text-end" style="width:120px;">ร้อยละ (%)</th>'
+    + '</tr></thead><tbody>';
+
+  allUnits.forEach((u, i) => {
+    const n = byUnit[u] || 0;
+    const pct = total > 0 ? ((n / total) * 100).toFixed(2) : '0.00';
+    const isStop = u === 'หยุดยาเอง';
+    const isUnknown = u === 'ไม่ระบุ';
+    const labelHtml = isStop
+      ? '<strong class="text-danger">' + escapeHtml(u) + '</strong>'
+      : isUnknown
+        ? '<span class="text-muted">' + escapeHtml(u) + '</span>'
+        : escapeHtml(u);
+
+    html += '<tr>'
+      + '<td class="text-muted">' + (i + 1) + '</td>'
+      + '<td>' + labelHtml + '</td>'
+      + '<td class="text-end">' + n.toLocaleString('th-TH') + '</td>'
+      + '<td class="text-end">' + pct + '</td>'
+      + '</tr>';
+  });
+
+  html += '<tr class="table-success fw-bold">'
+    + '<td></td>'
+    + '<td>รวมทั้งหมด</td>'
+    + '<td class="text-end">' + total.toLocaleString('th-TH') + '</td>'
+    + '<td class="text-end">100.00</td>'
+    + '</tr>';
+
+  html += '</tbody></table></div>';
+  listEl.innerHTML = html;
 }
 
 /* ---------- DM Remission Dashboard ---------- */
