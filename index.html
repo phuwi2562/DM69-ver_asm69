@@ -1291,8 +1291,11 @@ body {
               <div class="col-md-6"><img id="l_PhotoPreview" src="" style="max-height:100px;display:none;" class="img-thumbnail"></div>
             </div>
 
-            <div class="d-grid gap-2 d-md-flex justify-content-md-end mt-3">
+            <div class="d-grid gap-2 d-md-flex justify-content-md-end mt-3" id="labSaveSection">
               <button class="btn btn-primary-custom" onclick="saveLab()"><i class="bi bi-save"></i> บันทึกผล Lab</button>
+            </div>
+            <div class="alert alert-warning small mt-3 mb-0" id="labOsmNotice" style="display:none;">
+              <i class="bi bi-info-circle"></i> บทบาท <strong>อสม.</strong> ดูผล Lab ได้ แต่ไม่มีสิทธิ์บันทึก/แก้ไข — เฉพาะ admin หรือ จนท. รพ.สต. เท่านั้น
             </div>
           </div>
         </div>
@@ -1551,7 +1554,7 @@ body {
                   <input class="form-check-input" type="checkbox" id="medsShowInactive" onchange="loadMedications()">
                   <label class="form-check-label small" for="medsShowInactive">รวมยาที่หยุดแล้ว</label>
                 </div>
-                <button class="btn btn-sm btn-primary-custom" onclick="openMedModal()"><i class="bi bi-plus-lg"></i> เพิ่มยา</button>
+                <button class="btn btn-sm btn-primary-custom" id="btnAddMed" onclick="openMedModal()"><i class="bi bi-plus-lg"></i> เพิ่มยา</button>
               </div>
             </div>
             <div class="alert alert-info small py-2">
@@ -1579,92 +1582,6 @@ body {
       </div>
 
       <!-- TAB: TREND CHARTS -->
-      <div id="tabTrend" class="tab-content-panel" style="display:none;">
-        <div class="d-flex justify-content-between align-items-center mb-2 flex-wrap gap-2">
-          <h6 class="mb-0 text-success"><i class="bi bi-graph-up-arrow"></i> แนวโน้มผลตรวจ</h6>
-          <div class="btn-group btn-group-sm" role="group">
-            <input type="radio" class="btn-check" name="trendRange" id="trendRange12" value="12" checked onchange="renderPatientTrendCharts()">
-            <label class="btn btn-outline-success" for="trendRange12">12 เดือน</label>
-            <input type="radio" class="btn-check" name="trendRange" id="trendRange24" value="24" onchange="renderPatientTrendCharts()">
-            <label class="btn btn-outline-success" for="trendRange24">24 เดือน</label>
-            <input type="radio" class="btn-check" name="trendRange" id="trendRangeAll" value="0" onchange="renderPatientTrendCharts()">
-            <label class="btn btn-outline-success" for="trendRangeAll">ทั้งหมด</label>
-          </div>
-        </div>
-        <div class="alert alert-info small mb-3 py-2">
-          <i class="bi bi-info-circle"></i> เส้นประคือค่าเป้าหมาย — จุดสีเขียวคือ "ในเกณฑ์", สีเหลือง "เกินเกณฑ์เล็กน้อย", สีแดง "เกินเกณฑ์มาก"
-        </div>
-
-        <div id="trendNoData" class="text-center text-muted py-4" style="display:none;">
-          <i class="bi bi-graph-up display-4"></i>
-          <div class="mt-2">ยังไม่มีข้อมูลผลตรวจในช่วงที่เลือก</div>
-        </div>
-
-        <div id="trendCharts" class="row g-3">
-          <div class="col-12 col-lg-6">
-            <div class="card border-0 shadow-sm h-100">
-              <div class="card-body">
-                <div class="d-flex justify-content-between align-items-baseline">
-                  <strong class="text-success"><i class="bi bi-droplet-fill"></i> HbA1c</strong>
-                  <small class="text-muted">เป้าหมาย &lt; 7 %</small>
-                </div>
-                <div id="trendHbA1cSummary" class="small mt-1"></div>
-                <canvas id="trendHbA1cChart" height="180"></canvas>
-              </div>
-            </div>
-          </div>
-
-          <div class="col-12 col-lg-6">
-            <div class="card border-0 shadow-sm h-100">
-              <div class="card-body">
-                <div class="d-flex justify-content-between align-items-baseline">
-                  <strong class="text-primary"><i class="bi bi-droplet-half"></i> FBS / DTX</strong>
-                  <small class="text-muted">เป้าหมาย 70 - 130 mg/dL</small>
-                </div>
-                <div id="trendFBSSummary" class="small mt-1"></div>
-                <canvas id="trendFBSChart" height="180"></canvas>
-              </div>
-            </div>
-          </div>
-
-          <div class="col-12 col-lg-6">
-            <div class="card border-0 shadow-sm h-100">
-              <div class="card-body">
-                <div class="d-flex justify-content-between align-items-baseline">
-                  <strong class="text-danger"><i class="bi bi-heart-pulse-fill"></i> ความดันโลหิต (BP)</strong>
-                  <small class="text-muted">เป้าหมาย &lt; 140/90 mmHg</small>
-                </div>
-                <div id="trendBPSummary" class="small mt-1"></div>
-                <canvas id="trendBPChart" height="180"></canvas>
-              </div>
-            </div>
-          </div>
-
-          <div class="col-12 col-lg-6">
-            <div class="card border-0 shadow-sm h-100">
-              <div class="card-body">
-                <div class="d-flex justify-content-between align-items-baseline">
-                  <strong style="color:#fd7e14;"><i class="bi bi-speedometer2"></i> น้ำหนัก / BMI</strong>
-                  <small class="text-muted">BMI 18.5 - 22.9</small>
-                </div>
-                <div id="trendWeightSummary" class="small mt-1"></div>
-                <canvas id="trendWeightChart" height="180"></canvas>
-              </div>
-            </div>
-          </div>
-
-          <div class="col-12">
-            <div class="card border-0 shadow-sm">
-              <div class="card-body">
-                <strong class="text-info"><i class="bi bi-droplet"></i> ไขมัน (LDL / HDL / Triglyceride)</strong>
-                <small class="text-muted ms-2">LDL &lt; 100 · HDL ช &gt; 40 / ญ &gt; 50 · TG &lt; 150 mg/dL</small>
-                <canvas id="trendLipidChart" height="120"></canvas>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
       <!-- TAB: HISTORY -->
       <div id="tabHistory" class="tab-content-panel" style="display:none;">
         <div id="historyContent"></div>
@@ -2300,7 +2217,6 @@ function switchTab(tab) {
   event.currentTarget.classList.add('active');
   if (tab === 'history') loadHistory();
   if (tab === 'annual') renderAnnualExamUI();
-  if (tab === 'trend') loadPatientTrendData();
   if (tab === 'meds') loadMedications();
   if (tab === 'appts') loadAppointments();
 }
@@ -3205,9 +3121,9 @@ async function viewPatient(id) {
     Swal.close();
     if (!r.success) { showError(r.message); return; }
     currentPatient = r.data;
-    // ล้าง trend data ของผู้ป่วยคนก่อน
-    _trendHistory = null;
     renderPatientDetail(currentPatient);
+    // ปรับ UI ตามบทบาท — osm ไม่เห็นปุ่มบันทึก Lab/Annual/Med
+    applyClinicalEditPermission();
     // Set today defaults
     const today = new Date().toISOString().split('T')[0];
     document.getElementById('v_VisitDate').value = today;
@@ -4353,8 +4269,21 @@ async function loadMedications() {
 
 function renderMedications(list) {
   const wrap = document.getElementById('medsList');
+  // ปุ่ม "เพิ่มยา" — ซ่อนสำหรับ osm
+  const ok = canEditClinical();
+  const addBtn = document.getElementById('btnAddMed');
+  if (addBtn) addBtn.style.display = ok ? '' : 'none';
+
   if (!list || list.length === 0) {
-    wrap.innerHTML = '<div class="alert alert-light border text-center"><i class="bi bi-info-circle"></i> ยังไม่มีรายการยา — กด "เพิ่มยา" เพื่อบันทึก</div>';
+    wrap.innerHTML = ok
+      ? '<div class="alert alert-light border text-center"><i class="bi bi-info-circle"></i> ยังไม่มีรายการยา — กด "เพิ่มยา" เพื่อบันทึก</div>'
+      : '<div class="alert alert-light border text-center"><i class="bi bi-info-circle"></i> ยังไม่มีรายการยาของผู้ป่วยรายนี้</div>';
+    if (!ok) {
+      wrap.insertAdjacentHTML('beforeend',
+        '<div class="alert alert-warning small mt-2 mb-0">'
+        + '<i class="bi bi-info-circle"></i> บทบาท <strong>อสม.</strong> ดูข้อมูลยาได้ แต่ไม่มีสิทธิ์เพิ่ม/แก้ไข/หยุดยา — เฉพาะ admin หรือ จนท. รพ.สต. เท่านั้น'
+        + '</div>');
+    }
     return;
   }
   // group ตามหมวด
@@ -4372,6 +4301,13 @@ function renderMedications(list) {
       const statusBadge = isActive
         ? '<span class="badge bg-success">ใช้อยู่</span>'
         : '<span class="badge bg-secondary">หยุดแล้ว</span>';
+      // ปุ่ม edit/discontinue — เฉพาะ admin/staff
+      const actionBtns = ok
+        ? '<div class="btn-group btn-group-sm">'
+          + '<button class="btn btn-outline-primary" onclick="openMedModal(\'' + escapeJs(m.MedicationID) + '\')"><i class="bi bi-pencil"></i></button>'
+          + (isActive ? '<button class="btn btn-outline-warning" onclick="doDiscontinueMed(\'' + escapeJs(m.MedicationID) + '\', \'' + escapeJs(m.DrugName) + '\')"><i class="bi bi-stop-circle"></i> หยุดยา</button>' : '')
+          + '</div>'
+        : '';
       html += `
         <div class="border rounded p-2 mb-2 ${isActive ? '' : 'bg-light'}">
           <div class="d-flex flex-wrap gap-2 justify-content-between align-items-start">
@@ -4387,18 +4323,25 @@ function renderMedications(list) {
               </div>
               ${m.Notes ? '<div class="small mt-1"><i class="bi bi-sticky"></i> ' + escapeHtml(m.Notes) + '</div>' : ''}
             </div>
-            <div class="btn-group btn-group-sm">
-              <button class="btn btn-outline-primary" onclick="openMedModal('${escapeJs(m.MedicationID)}')"><i class="bi bi-pencil"></i></button>
-              ${isActive ? '<button class="btn btn-outline-warning" onclick="doDiscontinueMed(\'' + escapeJs(m.MedicationID) + '\', \'' + escapeJs(m.DrugName) + '\')"><i class="bi bi-stop-circle"></i> หยุดยา</button>' : ''}
-            </div>
+            ${actionBtns}
           </div>
         </div>`;
     });
   });
+  // notice สำหรับ osm
+  if (!ok) {
+    html += '<div class="alert alert-warning small mt-3 mb-0">'
+      + '<i class="bi bi-info-circle"></i> บทบาท <strong>อสม.</strong> ดูข้อมูลยาได้ แต่ไม่มีสิทธิ์เพิ่ม/แก้ไข/หยุดยา — เฉพาะ admin หรือ จนท. รพ.สต. เท่านั้น'
+      + '</div>';
+  }
   wrap.innerHTML = html;
 }
 
 function openMedModal(medId) {
+  if (!canEditClinical()) {
+    showError('เฉพาะ admin หรือ จนท. รพ.สต. เท่านั้นที่บันทึกยาได้');
+    return;
+  }
   // reset
   document.getElementById('med_MedicationID').value = medId || '';
   document.getElementById('med_DrugName').value = '';
@@ -5222,6 +5165,29 @@ function _setTrendSummary(elId, values, unit, goodMax, midMax, lowerIsBetter) {
     else arrow = ' <small>→ คงที่</small>';
   }
   el.innerHTML = '<span class="' + cls + '">ล่าสุด <strong>' + last + (unit || '') + '</strong> ' + status + '</span>' + arrow;
+}
+
+/* ===================================================================
+   Clinical edit permission — Lab/Annual/Medication เฉพาะ admin/staff
+   =================================================================== */
+function canEditClinical() {
+  return currentUser && (currentUser.role === 'admin' || currentUser.role === 'staff');
+}
+
+/**
+ * เรียกหลัง viewPatient เพื่อซ่อน/แสดง UI ปุ่มบันทึก Lab/Annual/Med ตามบทบาท
+ */
+function applyClinicalEditPermission() {
+  const ok = canEditClinical();
+  // Lab tab — ซ่อนปุ่ม "บันทึกผล Lab" + แสดง notice แทน
+  const labSave = document.getElementById('labSaveSection');
+  const labNotice = document.getElementById('labOsmNotice');
+  if (labSave) labSave.style.display = ok ? '' : 'none';
+  if (labNotice) labNotice.style.display = ok ? 'none' : 'block';
+
+  // Disable input ของ Lab ทั้งหมดสำหรับ osm (เพราะกรอกแล้วก็บันทึกไม่ได้)
+  const labInputs = document.querySelectorAll('#tabLab input, #tabLab textarea, #tabLab select');
+  labInputs.forEach(el => { el.disabled = !ok; });
 }
 
 /* ===================================================================
@@ -6077,11 +6043,8 @@ function renderAnnualExamUI() {
   const grid = document.getElementById('annualExamGrid');
   if (!grid) return;
 
-  let canEdit = false;
-  if (currentUser) {
-    if (currentUser.role === 'admin' || currentUser.role === 'staff') canEdit = true;
-    else if (currentUser.role === 'osm' && String(p.Village) === String(currentUser.village)) canEdit = true;
-  }
+  // ตรวจประจำปี: เฉพาะ admin/staff เท่านั้นที่บันทึกได้ (อสม. ดูได้แต่กรอกไม่ได้)
+  const canEdit = canEditClinical();
 
   const items = [
     { key: 'foot',   label: 'ตรวจเท้า',  icon: 'bi-emoji-smile-upside-down', date: p.LastFootExamDate },
@@ -6116,6 +6079,12 @@ function renderAnnualExamUI() {
       const el = document.getElementById('ae_' + it.key + '_date');
       if (el) el.value = today;
     });
+  } else {
+    // notice สำหรับ osm
+    grid.insertAdjacentHTML('beforeend',
+      '<div class="col-12"><div class="alert alert-warning small mt-2 mb-0">'
+      + '<i class="bi bi-info-circle"></i> บทบาท <strong>อสม.</strong> ดูข้อมูลตรวจประจำปีได้ แต่ไม่มีสิทธิ์บันทึก/แก้ไข — เฉพาะ admin หรือ จนท. รพ.สต. เท่านั้น'
+      + '</div></div>');
   }
 }
 
