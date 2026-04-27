@@ -379,6 +379,27 @@ body {
   transform: scale(1.05);
 }
 
+/* Bulk-select checkbox + action bar (admin only) */
+.patient-card .bulk-select {
+  width: 18px; height: 18px; cursor: pointer; flex-shrink: 0;
+  margin-right: 8px;
+}
+.patient-card.is-selected {
+  background: #e7d9f7 !important;
+  border: 2px solid #6f42c1 !important;
+  box-shadow: 0 2px 8px rgba(111,66,193,.15);
+}
+#bulkActionBar {
+  position: sticky; top: 0; z-index: 10;
+  background: linear-gradient(135deg, #6f42c1 0%, #5a32a3 100%);
+  color: #fff; padding: 10px 14px;
+  border-radius: 10px; margin-bottom: 10px;
+  box-shadow: 0 4px 14px rgba(111,66,193,.3);
+  display: flex; justify-content: space-between; align-items: center;
+  flex-wrap: wrap; gap: 8px;
+}
+#bulkActionBar button { font-weight: 600; }
+
 /* การ์ดผู้ป่วยที่ซ้ำ (admin เห็นเท่านั้น) */
 .patient-card-duplicate {
   border-left: 4px solid #dc3545 !important;
@@ -1044,6 +1065,18 @@ body {
         <button type="button" class="btn btn-sm btn-outline-danger quick-filter-btn" data-filter="bpHigh" onclick="setQuickFilter('bpHigh')">BP ไม่คุม <span class="badge bg-danger" id="cntBpHigh">0</span></button>
         <div class="ms-auto small text-muted" id="patientListSummary"></div>
       </div>
+      <!-- Bulk action bar — admin only, ปรากฏเมื่อมี checkbox ติ๊ก -->
+      <div id="bulkActionBar" style="display:none;">
+        <div>
+          <i class="bi bi-check2-square"></i> เลือก <strong id="bulkSelectedCount">0</strong> ราย
+          <button class="btn btn-sm btn-light ms-2" onclick="bulkClearSelection()"><i class="bi bi-x-circle"></i> ล้างที่เลือก</button>
+          <button class="btn btn-sm btn-outline-light ms-1" onclick="bulkSelectAllVisible()"><i class="bi bi-check-all"></i> เลือกทั้งหมดที่เห็น</button>
+        </div>
+        <div>
+          <button class="btn btn-sm btn-danger" onclick="doBulkDeletePatients()"><i class="bi bi-trash-fill"></i> ลบที่เลือกทั้งหมด</button>
+        </div>
+      </div>
+
       <div id="patientList"></div>
       <div id="patientListSentinel" style="height:1px;"></div>
       <div id="patientListPager" class="text-center text-muted small mt-2"></div>
@@ -1154,7 +1187,6 @@ body {
         <li class="nav-item"><button class="nav-link" onclick="switchTab('annual')"><i class="bi bi-clipboard2-check"></i> ตรวจประจำปี</button></li>
         <li class="nav-item"><button class="nav-link" onclick="switchTab('meds')"><i class="bi bi-capsule-pill"></i> ยา</button></li>
         <li class="nav-item"><button class="nav-link" onclick="switchTab('appts')"><i class="bi bi-calendar-event"></i> นัดหมาย</button></li>
-        <li class="nav-item"><button class="nav-link" onclick="switchTab('trend')"><i class="bi bi-graph-up-arrow"></i> แนวโน้ม</button></li>
         <li class="nav-item"><button class="nav-link" onclick="switchTab('history')"><i class="bi bi-clock-history"></i> ประวัติ</button></li>
       </ul>
 
@@ -2873,6 +2905,11 @@ function setQuickFilter(name) {
 }
 
 function applyPatientFilterSort() {
+  // เคลียร์ bulk selection ทุกครั้งที่กรอง/เรียงใหม่ (เพื่อความปลอดภัย: ผู้ใช้จะไม่ลบผู้ป่วยที่ไม่เห็นบนจอ)
+  if (_bulkSelectedIds && _bulkSelectedIds.size > 0) {
+    _bulkSelectedIds.clear();
+    updateBulkActionBar();
+  }
   // นับจำนวนต่อ filter สำหรับ badge
   const counts = { all: _patientsAll.length, notThisYear: 0, hba1cHigh: 0, bpHigh: 0 };
   _patientsAll.forEach(p => {
@@ -2996,8 +3033,18 @@ function renderPatientCard(p) {
     : '';
   const dupClass = isDup ? ' patient-card-duplicate' : '';
 
-  return `<div class="card patient-card mb-2${pendingClass}${dupClass}" onclick="viewPatient('${p.PatientID}')">
+  // Bulk-select checkbox — admin only
+  const isAdmin = (currentUser && currentUser.role === 'admin');
+  const isSelected = isAdmin && _bulkSelectedIds && _bulkSelectedIds.has(p.PatientID);
+  const selectedClass = isSelected ? ' is-selected' : '';
+  const checkboxHtml = isAdmin
+    ? '<input type="checkbox" class="bulk-select form-check-input" data-patient-id="' + escapeHtml(p.PatientID) + '" '
+      + (isSelected ? 'checked ' : '') + 'onclick="event.stopPropagation(); toggleBulkSelect(this);">'
+    : '';
+
+  return `<div class="card patient-card mb-2${pendingClass}${dupClass}${selectedClass}" onclick="viewPatient('${p.PatientID}')">
     <div class="card-body d-flex align-items-center">
+      ${checkboxHtml}
       <div class="avatar-circle me-3">${initials}</div>
       <div class="flex-grow-1">
         <div class="fw-bold">${fullName}${pendingBadge}${dupBadge}</div>
@@ -5175,6 +5222,108 @@ function _setTrendSummary(elId, values, unit, goodMax, midMax, lowerIsBetter) {
     else arrow = ' <small>→ คงที่</small>';
   }
   el.innerHTML = '<span class="' + cls + '">ล่าสุด <strong>' + last + (unit || '') + '</strong> ' + status + '</span>' + arrow;
+}
+
+/* ===================================================================
+   BULK DELETE — admin only
+   =================================================================== */
+let _bulkSelectedIds = new Set();
+
+function toggleBulkSelect(checkbox) {
+  const pid = checkbox.dataset.patientId;
+  if (!pid) return;
+  if (checkbox.checked) {
+    _bulkSelectedIds.add(pid);
+  } else {
+    _bulkSelectedIds.delete(pid);
+  }
+  // อัปเดต visual selected state ของ card
+  const card = checkbox.closest('.patient-card');
+  if (card) card.classList.toggle('is-selected', checkbox.checked);
+  updateBulkActionBar();
+}
+
+function updateBulkActionBar() {
+  const bar = document.getElementById('bulkActionBar');
+  const cnt = document.getElementById('bulkSelectedCount');
+  if (!bar) return;
+  const n = _bulkSelectedIds.size;
+  bar.style.display = n > 0 ? 'flex' : 'none';
+  if (cnt) cnt.textContent = n;
+}
+
+function bulkClearSelection() {
+  _bulkSelectedIds.clear();
+  // ยกเลิก checkbox ทุกตัว + class is-selected
+  document.querySelectorAll('.bulk-select').forEach(cb => { cb.checked = false; });
+  document.querySelectorAll('.patient-card.is-selected').forEach(c => c.classList.remove('is-selected'));
+  updateBulkActionBar();
+}
+
+function bulkSelectAllVisible() {
+  document.querySelectorAll('.bulk-select').forEach(cb => {
+    cb.checked = true;
+    const pid = cb.dataset.patientId;
+    if (pid) _bulkSelectedIds.add(pid);
+    const card = cb.closest('.patient-card');
+    if (card) card.classList.add('is-selected');
+  });
+  updateBulkActionBar();
+}
+
+async function doBulkDeletePatients() {
+  if (_bulkSelectedIds.size === 0) {
+    showError('กรุณาเลือกผู้ป่วยอย่างน้อย 1 ราย');
+    return;
+  }
+  const ids = Array.from(_bulkSelectedIds);
+  const ok = await Swal.fire({
+    icon: 'warning',
+    title: 'ลบผู้ป่วย ' + ids.length + ' ราย?',
+    html: '<div class="text-start">'
+      + '<strong>การลบนี้เป็นแบบ soft delete</strong> — ข้อมูลยังอยู่ใน Spreadsheet กู้คืนได้โดยตั้ง Active กลับเป็น TRUE<br><br>'
+      + 'กรุณาเลือกเหตุผล:</div>',
+    input: 'select',
+    inputOptions: {
+      'duplicate': 'ข้อมูลซ้ำกับผู้ป่วยรายอื่น',
+      'wrong_data': 'ข้อมูลผิดพลาด',
+      'death': 'ผู้ป่วยเสียชีวิต',
+      'moved_out': 'ย้ายออกจากพื้นที่',
+      'other': 'อื่นๆ'
+    },
+    showCancelButton: true,
+    confirmButtonText: 'ลบ ' + ids.length + ' ราย',
+    cancelButtonText: 'ยกเลิก',
+    confirmButtonColor: '#dc3545',
+    inputValidator: (v) => !v ? 'กรุณาเลือกเหตุผล' : undefined
+  });
+  if (!ok.isConfirmed) return;
+
+  showLoading('กำลังลบ ' + ids.length + ' ราย...');
+  try {
+    const r = await apiCall({
+      action: 'bulkDeletePatients', token: currentUser.token,
+      patientIds: JSON.stringify(ids), reason: ok.value
+    });
+    Swal.close();
+    if (!r.success) { showError(r.message); return; }
+    const d = r.data || {};
+    let msgHtml = '<strong>ลบสำเร็จ ' + d.deleted + ' / ' + d.total + ' ราย</strong>';
+    if (d.failed > 0) {
+      msgHtml += '<br><span class="text-danger">ผิดพลาด ' + d.failed + ' ราย:</span><ul class="text-start small">'
+        + (d.errors || []).slice(0, 5).map(e => '<li>' + escapeHtml(e.patientId + ': ' + e.message) + '</li>').join('')
+        + '</ul>';
+    }
+    await Swal.fire({
+      icon: d.failed === 0 ? 'success' : 'warning',
+      title: d.failed === 0 ? 'ลบเรียบร้อย' : 'ลบบางส่วนสำเร็จ',
+      html: msgHtml,
+      confirmButtonColor: '#1a8754'
+    });
+    _bulkSelectedIds.clear();
+    loadPatients();
+    if (currentUser && currentUser.role === 'admin') loadDuplicateIdsForBadge();
+  } catch (e) { Swal.close(); showError(e.toString()); }
 }
 
 /* ===================================================================
