@@ -2242,7 +2242,10 @@ async function doLogin() {
       initVillageDropdowns();
       showPage('dashboard');
 
-      // แสดง toast "เข้าใช้ครั้งล่าสุด" — ให้ผู้ใช้สังเกต login ผิดปกติ
+      // 1) แสดง popup PDPA ก่อน — ผู้ใช้ต้องกดรับทราบก่อนใช้งาน
+      await showPdpaNotice();
+
+      // 2) แสดง toast "เข้าใช้ครั้งล่าสุด" — ให้ผู้ใช้สังเกต login ผิดปกติ
       const prev = currentUser.prevLastLoginAt;
       if (prev) {
         Swal.fire({
@@ -2259,6 +2262,45 @@ async function doLogin() {
       showError(r.message);
     }
   } catch (e) { showError(e.toString()); }
+}
+
+/**
+ * แสดง popup เตือนเรื่อง PDPA — ผู้ใช้ต้องกดรับทราบก่อนเข้าใช้งานทุกครั้ง
+ */
+async function showPdpaNotice() {
+  return Swal.fire({
+    icon: 'warning',
+    iconColor: '#fd7e14',
+    title: 'แจ้งเตือนการคุ้มครองข้อมูลส่วนบุคคล',
+    html: `
+      <div style="text-align:left;font-size:.95rem;line-height:1.7;">
+        <div style="background:#fff3cd;border-left:4px solid #fd7e14;padding:10px 14px;border-radius:6px;margin-bottom:12px;">
+          <strong>ตาม พ.ร.บ. คุ้มครองข้อมูลส่วนบุคคล พ.ศ. 2562 (PDPA)</strong>
+        </div>
+        <p style="margin:8px 0;"><strong>ข้อมูลผู้ป่วยทุกราย</strong> ในระบบนี้เป็นข้อมูลส่วนบุคคลที่ <strong>มีความอ่อนไหว</strong> (Sensitive Personal Data) ตามมาตรา 26 ผู้ใช้งานต้องปฏิบัติดังนี้:</p>
+        <ul style="padding-left:22px;margin:8px 0;font-size:.9rem;">
+          <li>ใช้ข้อมูลเพื่อ <strong>การดูแลรักษาผู้ป่วย</strong> เท่านั้น</li>
+          <li><strong>ห้ามถ่ายภาพ</strong> หน้าจอ/เอกสาร แล้วส่งต่อให้ผู้ที่ไม่มีสิทธิ์</li>
+          <li><strong>ห้ามเปิดเผย</strong> ชื่อ-สกุล HN เลขบัตร ปชช. หรือผลตรวจในที่สาธารณะ/social media</li>
+          <li><strong>ห้ามแชร์รหัสผ่าน</strong> ของท่านให้ผู้อื่นใช้</li>
+          <li><strong>ออกจากระบบทุกครั้ง</strong> หลังใช้งานเสร็จ (โดยเฉพาะหากใช้คอมร่วมกัน)</li>
+        </ul>
+        <div style="background:#f8d7da;border-left:4px solid #dc3545;padding:8px 12px;border-radius:6px;font-size:.85rem;margin-top:10px;">
+          <i class="bi bi-exclamation-triangle-fill"></i>
+          <strong>การฝ่าฝืน</strong> มีโทษทางกฎหมาย — ปรับสูงสุด <strong>5,000,000 บาท</strong> และจำคุกไม่เกิน <strong>1 ปี</strong>
+        </div>
+        <div style="margin-top:12px;font-size:.82rem;color:#6c757d;text-align:center;">
+          การกระทำของท่านในระบบนี้ถูก <strong>บันทึก Audit Log</strong> ทั้งหมด
+        </div>
+      </div>
+    `,
+    confirmButtonText: '✓ รับทราบและยอมรับ',
+    confirmButtonColor: '#1a8754',
+    allowOutsideClick: false,
+    allowEscapeKey: false,
+    width: 560,
+    customClass: { popup: 'pdpa-modal' }
+  });
 }
 
 function roleLabel(role) {
@@ -5583,6 +5625,8 @@ async function tryResumeSession() {
     document.getElementById('appPage').classList.add('active');
     initVillageDropdowns();
     showPage('dashboard');
+    // เตือน PDPA หลัง auto-resume เช่นกัน — เพื่อให้ผู้ใช้สำนึกทุกครั้งที่กลับมาใช้งาน
+    showPdpaNotice();
   } catch (e) { /* silent */ }
 }
 // auto-trigger ตอนหน้าโหลด
